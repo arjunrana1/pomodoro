@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install -D tailwindcss @tailwindcss/vite)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(export PATH=\"/opt/homebrew/bin:/usr/bin:$PATH\")",
+      "Bash(npx vite --host)",
+      "Bash(open http://localhost:5173/)",
+      "Bash(npm run build)",
+      "Bash(timeout 5 npm run dev)"
+    ]
+  }
+}
