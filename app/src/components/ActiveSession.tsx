@@ -1,6 +1,6 @@
 import { formatTime } from '../utils'
 import type { AppState } from '../types'
-import DeepFocusIcon from './DeepFocusIcon'
+import BrandMark from './BrandMark'
 
 interface Props {
   state: AppState
@@ -33,9 +33,9 @@ export default function ActiveSession({
       <header className="fixed top-0 left-0 right-0 flex items-center justify-between px-6 py-4 z-30">
         <div className="flex items-center gap-2.5">
           <div className="shrink-0" style={{width: 35, height: 35}}>
-            <DeepFocusIcon />
+            <BrandMark />
           </div>
-          <h2 className="text-base font-bold tracking-tight text-slate-800">Deep Focus</h2>
+          <h2 className="text-base font-bold tracking-tight text-slate-800">Pomodoro Focus</h2>
         </div>
         <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20">
           <span className="relative flex h-2 w-2">
@@ -46,15 +46,20 @@ export default function ActiveSession({
         </div>
       </header>
 
-      {/* Left Rail - fixed */}
+      {/* Left Rail - locked during active session (PRD §6: keep label "Session Plan" + lock icon) */}
       <aside className="fixed left-0 top-0 h-full flex flex-col items-center z-20 w-auto">
         <div className="flex flex-col h-full items-center justify-center">
-          <div className="flex items-center gap-1.5 px-2.5">
-            <span className="material-symbols-outlined text-slate-400 text-xs">lock</span>
-            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap [writing-mode:vertical-lr] rotate-180">
-              Locked
+          <button
+            type="button"
+            aria-disabled="true"
+            onClick={e => e.preventDefault()}
+            className="group flex flex-col items-center gap-3 py-6 px-2.5 cursor-not-allowed"
+          >
+            <span className="material-symbols-outlined text-slate-400 text-base">lock</span>
+            <span className="[writing-mode:vertical-lr] rotate-180 text-[9px] font-bold uppercase tracking-[0.3em] text-slate-400">
+              Session Plan
             </span>
-          </div>
+          </button>
         </div>
       </aside>
 
@@ -143,19 +148,24 @@ export default function ActiveSession({
                       item.completed ? 'opacity-70' : ''
                     }`}
                   >
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                    <div className={`w-5 h-5 rounded-full border-[2.5px] flex items-center justify-center shrink-0 transition-all ${
                       item.completed
-                        ? 'border-primary/60 bg-transparent'
-                        : 'border-slate-300/70'
+                        ? 'border-primary bg-primary/15'
+                        : 'border-primary/60 bg-white/70'
                     }`}>
                       {item.completed && (
-                        <span className="material-symbols-outlined text-primary/70 leading-none" style={{fontSize: '11px'}}>check</span>
+                        <span className="material-symbols-outlined text-primary leading-none font-bold" style={{fontSize: '14px'}}>check</span>
                       )}
                     </div>
-                    <span className={`text-xs font-medium transition-all ${
+                    <span className={`text-xs font-medium transition-all flex-1 ${
                       item.completed ? 'line-through text-slate-400' : 'text-slate-700'
                     }`}>
                       {item.title}
+                    </span>
+                    <span className={`text-[10px] font-bold tabular-nums shrink-0 px-2 py-0.5 rounded-full ${
+                      item.completed ? 'text-slate-400 bg-slate-100' : 'text-primary bg-primary/10'
+                    }`}>
+                      {item.minutes}m
                     </span>
                   </button>
                 ))}

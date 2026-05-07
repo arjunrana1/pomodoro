@@ -103,10 +103,10 @@ export default function SessionPlanSidebar({
 
         {/* Add task form */}
         <div className="px-5 pb-4">
-          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Add sub-task</label>
+          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Add task</label>
           <input
             type="text"
-            placeholder="Enter sub-task title"
+            placeholder="Enter task title"
             value={title}
             onChange={e => setTitle(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -134,7 +134,7 @@ export default function SessionPlanSidebar({
             }`}
           >
             <span className="material-symbols-outlined text-base">add</span>
-            Add Sub-task
+            Add Task
           </button>
         </div>
 
