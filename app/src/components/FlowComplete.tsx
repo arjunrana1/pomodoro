@@ -53,9 +53,9 @@ export default function FlowComplete({ state, newSession, playClick }: Props) {
             {state.sessionStoppedEarly ? 'Session ended early.' : 'Excellent work! You stayed focused.'}
           </p>
 
-          {/* Session Focus Time */}
+          {/* Session Focus Time — elapsed for stopped sessions, initial for natural completion (PRD §7.5) */}
           <div className="mb-6">
-            <p className="text-4xl font-black text-slate-900 tracking-tight">{formatTime(state.totalSessionSeconds)}</p>
+            <p className="text-4xl font-black text-slate-900 tracking-tight">{formatTime(state.lastSessionElapsedSeconds || state.initialSeconds)}</p>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary mt-1.5">Session Focus Time</p>
           </div>
 

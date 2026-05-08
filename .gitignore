@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Editor / OS noise
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Claude Code working state — local to each contributor.
+.claude/.DS_Store
+.claude/launch.json
+.claude/settings.local.json
+.claude/pomodoro_claude_backup/
+.claude/worktrees/
+
+# Test evidence — large PNGs, regenerated locally per run.
+# The text report (test-report.txt) IS tracked.
+test-evidence/
+
+# Build output — already covered by app/.gitignore but listed here for clarity.
+dist/
+node_modules/

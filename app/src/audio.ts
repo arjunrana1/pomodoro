@@ -18,7 +18,7 @@ function playTone(freq: number, duration: number, type: OscillatorType = 'sine',
     gain.connect(ctx.destination)
     osc.start()
     osc.stop(ctx.currentTime + duration)
-  } catch {}
+  } catch { /* AudioContext blocked (e.g. autoplay policy) — silent fallback */ }
 }
 
 export function playClickSound() {
@@ -35,9 +35,9 @@ export function playPauseSound() {
   playTone(440, 0.15, 'sine', 0.12)
 }
 
-export function playResetSound() {
-  playTone(600, 0.1, 'sine', 0.1)
-  setTimeout(() => playTone(400, 0.15, 'sine', 0.1), 80)
+export function playResumeSound() {
+  playTone(523, 0.12, 'sine', 0.12)
+  setTimeout(() => playTone(659, 0.16, 'sine', 0.12), 90)
 }
 
 export function playStopSound() {
@@ -46,7 +46,6 @@ export function playStopSound() {
 }
 
 export function playCompletionSound() {
-  // ~4 second celebratory ring
   const notes = [523, 659, 784, 1047, 784, 1047]
   notes.forEach((freq, i) => {
     setTimeout(() => playTone(freq, 0.6, 'sine', 0.18), i * 600)

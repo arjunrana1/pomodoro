@@ -9,7 +9,8 @@ export default function App() {
   const {
     state,
     selectPreset,
-    setCustomMinutes,
+    commitCustomMinutes,
+    setCustomMinutesError,
     togglePlanSidebar,
     toggleNotesDrawer,
     closeNotesDrawer,
@@ -34,7 +35,8 @@ export default function App() {
         <HomeScreen
           state={state}
           selectPreset={selectPreset}
-          setCustomMinutes={setCustomMinutes}
+          commitCustomMinutes={commitCustomMinutes}
+          setCustomMinutesError={setCustomMinutesError}
           startSession={startSession}
           togglePlanSidebar={togglePlanSidebar}
           toggleNotesDrawer={toggleNotesDrawer}
