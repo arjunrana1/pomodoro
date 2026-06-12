@@ -68,7 +68,7 @@ Each row tells you exactly which file owns what visual surface. **Edit only the 
 
 | Surface / Feature | File | Notes |
 |---|---|---|
-| Header: brand, Work/Break segmented toggle (+ session lock), speaker + gear icons, mobile full-width pill | `components/Header.tsx` | Toggle disabled with lock glyph while running/paused (AC-3). Mobile pill is `absolute` so it scrolls away with the fold. |
+| Header: brand, Focus/Break segmented toggle (+ session lock), speaker + gear icons, mobile full-width pill | `components/Header.tsx` | Labels are "Focus"/"Break" (mode is still `work`/`break` internally). Toggle disabled with lock glyph while running/paused (AC-3). Mobile pill is `absolute` so it scrolls away with the fold. |
 | Home screen (Work **and** Break idle): orb, preset pills, custom pill, Start CTA, daily stats, decorative orbs | `components/HomeScreen.tsx` | Mode-aware: Break swaps teal accent, 5/10/15 presets, `TAKE A BREATHER`, hides stats/FABs. Renders dashboard + footer below the fold. |
 | Active session (Work **and** Break): orb, timer, Pause/Resume + Stop / End Break, task checklist + `+N more` expander, Spotify mini-player | `components/ActiveSession.tsx` | Count direction is display-only: `countUp ? initial - remaining : remaining`. Shimmer pauses via `animationPlayState`. |
 | Flow Complete modal (Work completion) | `components/FlowComplete.tsx` | Elapsed (stopped) vs initial (natural); `Xh Ym` format; no FABs. |
@@ -76,10 +76,10 @@ Each row tells you exactly which file owns what visual surface. **Edit only the 
 | Notes + Tasks FABs (plain round CTAs, no badges) | `components/Fabs.tsx` | Hidden in Break + on completion screens (callers decide). |
 | Session Plan drawer (right, same side as its FAB): add/validate task, drag-reorder, CURRENT BREAKDOWN, COMPLETED TASKS log + Clear-all, Start Focused Session CTA | `components/TasksDrawer.tsx` | Checking a task moves it to the completed log instantly; unchecking pulls it back. CTA only rendered while idle (hidden during running/paused). |
 | Notes drawer (left, same side as its FAB): textarea, timestamped note cards, edit/delete | `components/NotesDrawer.tsx` | Click-outside closes; Escape doesn't (AC-19). |
-| Settings screen: Timer (direction + mode mirror), Sound (toggle + volume), Music (lofi list + transport + volume, Spotify panel), Data & Privacy | `components/SettingsScreen.tsx` | Full screen via gear, not a modal. Local sub-components: Segmented, Toggle, VolumeSlider, DangerButton. |
+| Settings screen: Timer (direction only — no mode mirror), Sound (toggle + volume), Music (lofi list + transport + volume, Spotify panel), Data & Privacy ("Manage your data") | `components/SettingsScreen.tsx` | Full screen via gear, not a modal. Local sub-components: Segmented, Toggle, VolumeSlider, DangerButton. |
 | Spotify panel (Settings): connected/disconnected states, now playing, transport, Disconnect, Premium note | `components/SpotifyPanel.tsx` | Polls now-playing every 5 s while connected. |
 | Spotify mini-player (active session) | `components/SpotifyMiniPlayer.tsx` | Renders nothing if no playback. |
-| Focus History dashboard: 7-day bars, 2×2 stats (incl. Tasks Completed), hourly heatmap (starts 9 AM, pre-9am wraps to end), legend, empty state | `components/FocusHistoryDashboard.tsx` | `HOUR_ORDER = (i+9)%24`. Tasks Completed = completed-log entries in the 7-day window. All durations via `formatDuration`. |
+| Focus History dashboard: 7-day bars, 2×2 stats (incl. Tasks Completed), hourly heatmap (8 AM–11 PM window, all 16 hour labels written out, "Work life friendly heat map" note), legend, empty state | `components/FocusHistoryDashboard.tsx` | `HOUR_ORDER = 8..23`; hours outside the window are stored but not displayed. Tasks Completed = completed-log entries in the 7-day window. All durations via `formatDuration`. |
 | Expanded SEO marketing footer (7 sections) | `components/MarketingFooter.tsx` | Canonical section list in `REQUIREMENTS_V3.md §12`. |
 | App brand mark (logo SVG) | `components/BrandMark.tsx` | 35×35 SVG; `accent` prop switches purple/teal. |
 

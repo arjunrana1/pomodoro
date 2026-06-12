@@ -92,7 +92,7 @@ Fidelity note: match look and hierarchy closely, not pixel-perfectly. Exact blur
 
 ## 2. Global chrome
 
-**Header (all screens).** Brand mark (logo + "Pomodoro Focus") top-left. **Work / Break segmented toggle** center (desktop) — pill, glass-40 track, selected segment filled (Work=primary, Break=break-teal). **Sound (speaker) icon** + **Settings (gear) icon** top-right. During an active session the toggle is **disabled/greyed** with a lock glyph (see REQUIREMENTS_V3 §3). On mobile the toggle becomes a full-width pill below the brand (Break/idle) — see per-screen notes.
+**Header (all screens).** Brand mark (logo + "Pomodoro Focus") top-left. **Focus / Break segmented toggle** center (desktop, labels "Focus" / "Break") — pill, glass-40 track, selected segment filled (Work=primary, Break=break-teal). **Sound (speaker) icon** + **Settings (gear) icon** top-right. During an active session the toggle is **disabled/greyed** with a lock glyph (see REQUIREMENTS_V3 §3). On mobile the toggle becomes a full-width pill below the brand (Break/idle) — see per-screen notes.
 
 **FABs.** Circular floating buttons: **Notes FAB** bottom-left (`--glass-70`, notes/edit icon), **Tasks FAB** bottom-right (`--primary` filled, checklist icon) — both plain round CTAs, **no badges**. Each drawer slides in from its FAB's side: Tasks from the right, Notes from the left. Reusable components `FAB · Notes` and `FAB · Tasks`. Present on Home (idle), Dashboard, and active Work session. **Hidden in Break mode and on Flow Complete / Break Done.**
 
@@ -134,7 +134,7 @@ Focus History dashboard (below-the-fold on Home; on both desktop and mobile via 
 
 ### 3.11 `Settings — Desktop.jpg` / `Settings — Mobile.jpg`
 Full **Settings** screen (not a modal), reached via header gear. Centered **⚙ Settings** title. Four cards:
-- **Timer** ("Control how the focus timer counts.") — **Timer Direction** `[Count Down | Count Up]` (Count Down default); **Session Mode** `[Work | Break]` (mirrors header toggle).
+- **Timer** ("Control how the focus timer counts.") — **Timer Direction** `[Count Down | Count Up]` (Count Down default). (Session Mode mirror removed — mode lives in the header only.)
 - **Sound** ("Chimes and audio feedback.") — **Sound Effects** toggle (on); **Sound Volume** slider `70%`.
 - **Music** ("Background music for your focus sessions.") — **LOFI LIBRARY · BUILT-IN** track list (title · artist · duration; selected row highlighted) with transport `⏮ ⏯ ⏭ 🔁` + music volume slider; **Spotify Connect** sub-panel (connected: now-playing + transport + Disconnect + "Playback control requires Spotify Premium"; disconnected: see §3.12).
 - **Data & Privacy** ("Manage the data stored on this device.") — **Clear focus history** (Clear, destructive), **Clear completed tasks** (Clear, destructive), **Export data (JSON)** (Export).

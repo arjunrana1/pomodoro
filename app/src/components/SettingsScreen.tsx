@@ -50,7 +50,7 @@ export default function SettingsScreen({ store, closeSettings }: Props) {
 
         {/* ── Timer ── */}
         <SettingsCard icon="timer" title="Timer" subtitle="Control how the focus timer counts.">
-          <SettingsRow title="Timer Direction" subtitle="Count down from a preset, or count up from zero.">
+          <SettingsRow title="Timer Direction" subtitle="Count down from a preset, or count up from zero." last>
             <Segmented
               options={[
                 { label: 'Count Down', value: false },
@@ -58,17 +58,6 @@ export default function SettingsScreen({ store, closeSettings }: Props) {
               ]}
               value={settings.countUp}
               onChange={v => setCountUp(v)}
-            />
-          </SettingsRow>
-          <SettingsRow title="Session Mode" subtitle="Mirrors the Work / Break toggle in the header." last>
-            <Segmented
-              options={[
-                { label: 'Work', value: 'work' as const },
-                { label: 'Break', value: 'break' as const },
-              ]}
-              value={state.mode}
-              onChange={m => setMode(m)}
-              disabled={sessionActive}
             />
           </SettingsRow>
         </SettingsCard>
@@ -151,7 +140,7 @@ export default function SettingsScreen({ store, closeSettings }: Props) {
         </SettingsCard>
 
         {/* ── Data & Privacy ── */}
-        <SettingsCard icon="shield" title="Data & Privacy" subtitle="Manage the data stored on this device.">
+        <SettingsCard icon="shield" title="Data & Privacy" subtitle="Manage your data">
           <SettingsRow title="Clear focus history" subtitle="Permanently delete all recorded focus sessions.">
             <DangerButton label="Clear" onClick={handleClearHistory} />
           </SettingsRow>

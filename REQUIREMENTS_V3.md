@@ -26,7 +26,7 @@ Everything in v2's PRD that is **not** changed below still holds (timer wall-clo
 
 ## 2. App modes & states
 
-- **Mode** (global, persisted): `work | break`. Default **work** on first load. Controlled by the header Work/Break toggle and mirrored by Settings → Timer → Session Mode.
+- **Mode** (global, persisted): `work | break`. Default **work** on first load. Controlled solely by the header **Focus/Break** toggle (labeled "Focus", internally `work`; the Settings mirror was removed).
 - **Timer direction** (global, persisted): `countDown | countUp`. Default **countDown**.
 - **App status:** `idle | running | paused | complete` (+ break equivalents). Work completion → **Flow Complete** modal; Break completion → **Break Done** card.
 
@@ -130,7 +130,7 @@ Reached via header **gear**. Full screen (not a modal). Sections:
 
 ### 8.1 Timer
 - **Timer Direction** toggle `Count Down | Count Up` (default Count Down) → sets global `countUp` (§4.2).
-- **Session Mode** toggle `Work | Break` — mirrors the header toggle (same state).
+- ~~Session Mode toggle~~ — removed; mode is controlled only by the header Focus/Break toggle.
 
 ### 8.2 Sound
 - **Sound Effects** master toggle (default **on**) — also reflected by the header speaker icon (filled/muted, updates live).
@@ -164,7 +164,7 @@ Below-the-fold on Home, reachable by **scrolling on both desktop and mobile** (m
 - **7-Day Activity** bar chart: last 7 days, oldest left, today emphasized; single-letter day initials; bars sized by `totalFocusSeconds`; zero-days show a baseline line; values annotated in hours-minutes (§11). No "Weekly View" pill.
 - **Stats grid 2×2:** **DAILY TOTAL** (today's focus), **DAILY AVG** (last-7-day total ÷ 7), **WEEKLY TOTAL** (sum last 7 days), **TASKS COMPLETED** (count of completed tasks in window / or total — see note). The 4th tile replaces v2's "Weekly Avg".
   - *Tasks Completed definition:* count of tasks completed in the last-7-day window. (If simpler, total completed-tasks count is acceptable; pick one and note it.)
-- **7-Day Focus Heatmap — Hourly:** 7 day-rows × hourly columns. Columns **start at 9 AM** (`9a, 10a, … 12a, 1a`); hours **before 9 AM wrap to the end** of the row (night-owl). Cell intensity ∝ focus seconds in that day×hour bucket, brand-purple ramp, scaled to the visible grid max. `Less → More` legend.
+- **7-Day Focus Heatmap — Hourly:** 7 day-rows × hourly columns covering **8 AM → 11 PM only** (16 columns, "work life friendly" window — hours outside it are stored but not displayed). Every column labeled in full (`8AM, 9AM, … 11PM`). Subtitle note under the card title: "Work life friendly heat map". Cell intensity ∝ focus seconds in that day×hour bucket, brand-purple ramp, scaled to the visible grid max. `Less → More` legend.
 - **Empty state:** if no focused seconds ever recorded and today's focus is 0 → show title + "Complete your first session to start tracking your focus history." and no charts.
 - Re-renders on return to Home from completion and at local-midnight rollover.
 
@@ -307,7 +307,7 @@ Do these in order within one session; each step should leave the app runnable.
 Tests map to these IDs (TEST_PLAN_V3.md). "Work" = Work mode unless noted.
 
 **Modes**
-- AC-1 Header shows a Work/Break toggle on every screen; default Work on fresh load.
+- AC-1 Header shows a Focus/Break toggle on every screen (labels "Focus" / "Break"); default Focus on fresh load.
 - AC-2 Switching to Break swaps presets (5/10/15, default 5m), teal accent, `TAKE A BREATHER`, and hides Tasks/Notes/FABs/stats.
 - AC-3 During any running/paused session the toggle is disabled + locked; switching mode is impossible until Stop/End.
 - AC-4 Break time is never added to daily stats or focus history; Break never appears in the dashboard.
@@ -343,7 +343,7 @@ Tests map to these IDs (TEST_PLAN_V3.md). "Work" = Work mode unless noted.
 **Dashboard / Format**
 - AC-25 Dashboard renders below the fold on Home (desktop + mobile, scroll), Home-only, with empty state when no data.
 - AC-26 7-day bar chart (today emphasized, no Weekly View pill); stats tiles Daily Total / Daily Avg / Weekly Total / Tasks Completed.
-- AC-27 Heatmap is 7×24 hourly, columns start at 9 AM with pre-9am wrapped to the end; intensity ∝ per-hour focus seconds.
+- AC-27 Heatmap is 7×16 hourly covering 8 AM–11 PM, every column labeled in full; intensity ∝ per-hour focus seconds (out-of-window hours stored but not shown).
 - AC-28 Stopped Work sessions contribute elapsed seconds to bar + heatmap but not to sessions count.
 - AC-29 All durations render as `Xh Ym` / `Ym` / `Xh`; no decimals anywhere.
 

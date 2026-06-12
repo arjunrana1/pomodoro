@@ -7,13 +7,13 @@ interface Props {
   completedTasks: CompletedTask[]
 }
 
-// Heatmap columns start at 9 AM; pre-9am hours wrap to the end (night-owl).
-const HOUR_ORDER = [...Array(24).keys()].map(i => (i + 9) % 24)
+// Work-life-friendly heatmap window: 8 AM through 11 PM only (16 hourly columns).
+const HOUR_ORDER = [...Array(16).keys()].map(i => i + 8)
 
 function hourLabel(h: number): string {
-  if (h === 0) return '12a'
-  if (h === 12) return '12p'
-  return h < 12 ? `${h}a` : `${h - 12}p`
+  if (h === 0) return '12AM'
+  if (h === 12) return '12PM'
+  return h < 12 ? `${h}AM` : `${h - 12}PM`
 }
 
 function getDayTotal(history: FocusHistory, key: string, fallbackTodaySeconds = 0): number {
@@ -146,20 +146,23 @@ export default function FocusHistoryDashboard({ focusHistory, todayFocusSeconds,
 
       {/* 7-Day Focus Heatmap — Hourly, columns start 9 AM, pre-9am wraps to the end */}
       <div className="max-w-5xl mx-auto mt-4 frosted-glass rounded-2xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">7-Day Focus Heatmap — Hourly</h3>
+        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+          <div>
+            <h3 className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">7-Day Focus Heatmap — Hourly</h3>
+            <p className="text-[10px] text-slate-400 mt-0.5">Work life friendly heat map</p>
+          </div>
           <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
             <span className="material-symbols-outlined text-amber-500" style={{ fontSize: 13 }}>light_mode</span>
-            9 AM
-            <span className="material-symbols-outlined" style={{ fontSize: 12 }}>arrow_forward</span>
             8 AM
+            <span className="material-symbols-outlined" style={{ fontSize: 12 }}>arrow_forward</span>
+            11 PM
             <span className="material-symbols-outlined text-primary/60" style={{ fontSize: 13 }}>dark_mode</span>
           </span>
         </div>
         <div className="overflow-x-auto">
           <div className="min-w-[640px]">
             {segmentRows.map(row => (
-              <div key={row.key} className="grid grid-cols-[24px_repeat(24,minmax(0,1fr))] gap-[3px] mb-[3px] items-center">
+              <div key={row.key} className="grid grid-cols-[24px_repeat(16,minmax(0,1fr))] gap-[3px] mb-[3px] items-center">
                 <span className={`text-[10px] font-bold uppercase ${row.key === todayKey ? 'text-primary' : 'text-slate-400'}`}>
                   {dayInitial(row.date)}
                 </span>
@@ -177,12 +180,12 @@ export default function FocusHistoryDashboard({ focusHistory, todayFocusSeconds,
                 })}
               </div>
             ))}
-            {/* Column labels — every other hour to stay legible */}
-            <div className="grid grid-cols-[24px_repeat(24,minmax(0,1fr))] gap-[3px] mt-1">
+            {/* Column labels — every hour, written out in full */}
+            <div className="grid grid-cols-[24px_repeat(16,minmax(0,1fr))] gap-[3px] mt-1">
               <span />
-              {HOUR_ORDER.map((h, i) => (
-                <span key={h} className="text-[8px] font-semibold text-slate-400 text-center tracking-tight leading-none">
-                  {i % 2 === 0 ? hourLabel(h) : ''}
+              {HOUR_ORDER.map(h => (
+                <span key={h} className="text-[8px] font-semibold text-slate-400 text-center tracking-tight leading-none whitespace-nowrap">
+                  {hourLabel(h)}
                 </span>
               ))}
             </div>

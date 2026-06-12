@@ -34,7 +34,7 @@ export default function Header({
       aria-label="Session mode"
     >
       <ModeButton
-        label="Work"
+        label="Focus"
         icon="target"
         active={mode === 'work'}
         activeClass="bg-primary text-white shadow-md shadow-primary/25"
