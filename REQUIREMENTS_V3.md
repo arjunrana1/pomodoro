@@ -89,7 +89,7 @@ State router renders by `(mode, status)`. Below-the-fold dashboard + footer rend
 ## 5. Tasks / Session Plan
 
 ### 5.1 Access
-- Opened via the **Tasks FAB** (bottom-right) — available in **all Work states** (idle, active, complete), **not** locked during a session (changed from v2). Hidden in Break.
+- Opened via the **Tasks FAB** (bottom-right) — available on **Work idle Home only**; the FAB is hidden during a running/paused session and on completion screens. Hidden in Break. (The active-session checklist §5.3 is how tasks are interacted with mid-session.)
 - The Tasks FAB is a plain round CTA — **no count badge**.
 
 ### 5.2 Drawer contents (`Session Plan`)
@@ -323,7 +323,7 @@ Tests map to these IDs (TEST_PLAN_V3.md). "Work" = Work mode unless noted.
 - AC-12 Cross-midnight Work session attributes to its start day.
 
 **Tasks / Completed**
-- AC-13 Tasks FAB available in all Work states (incl. active); hidden in Break; plain round CTA with no badge; the Start Focused Session CTA appears only while idle.
+- AC-13 Tasks FAB available on Work idle Home only — hidden during running/paused sessions, in Break, and on completion screens; plain round CTA with no badge; the Start Focused Session CTA appears only while idle. Notes FAB remains available during active Work sessions.
 - AC-14 Add validates (title + whole minutes ≥1); reorder via drag; delete works; duplicates allowed.
 - AC-15 Checking a task during a session moves it to Completed Tasks with timestamp + duration, newest-first.
 - AC-16 No per-row edit/delete/undo on completed tasks; only Clear-all with confirm (both Tasks drawer + Settings clear the same log).

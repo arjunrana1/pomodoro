@@ -149,7 +149,7 @@ export default function FocusHistoryDashboard({ focusHistory, todayFocusSeconds,
         <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
           <div>
             <h3 className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">7-Day Focus Heatmap — Hourly</h3>
-            <p className="text-[10px] text-slate-400 mt-0.5">Work life friendly heat map</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">Work-life friendly!</p>
           </div>
           <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
             <span className="material-symbols-outlined text-amber-500" style={{ fontSize: 13 }}>light_mode</span>

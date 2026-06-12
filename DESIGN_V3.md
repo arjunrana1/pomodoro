@@ -94,7 +94,7 @@ Fidelity note: match look and hierarchy closely, not pixel-perfectly. Exact blur
 
 **Header (all screens).** Brand mark (logo + "Pomodoro Focus") top-left. **Focus / Break segmented toggle** center (desktop, labels "Focus" / "Break") — pill, glass-40 track, selected segment filled (Work=primary, Break=break-teal). **Sound (speaker) icon** + **Settings (gear) icon** top-right. During an active session the toggle is **disabled/greyed** with a lock glyph (see REQUIREMENTS_V3 §3). On mobile the toggle becomes a full-width pill below the brand (Break/idle) — see per-screen notes.
 
-**FABs.** Circular floating buttons: **Notes FAB** bottom-left (`--glass-70`, notes/edit icon), **Tasks FAB** bottom-right (`--primary` filled, checklist icon) — both plain round CTAs, **no badges**. Each drawer slides in from its FAB's side: Tasks from the right, Notes from the left. Reusable components `FAB · Notes` and `FAB · Tasks`. Present on Home (idle), Dashboard, and active Work session. **Hidden in Break mode and on Flow Complete / Break Done.**
+**FABs.** Circular floating buttons: **Notes FAB** bottom-left (`--glass-70`, notes/edit icon), **Tasks FAB** bottom-right (`--primary` filled, checklist icon) — both plain round CTAs, **no badges**. Each drawer slides in from its FAB's side: Tasks from the right, Notes from the left. Reusable components `FAB · Notes` and `FAB · Tasks`. Notes FAB is present on Home (idle), Dashboard, and active Work session; the Tasks FAB only on Home (idle) + Dashboard — it disappears during a live session. **Both hidden in Break mode and on Flow Complete / Break Done.**
 
 ---
 
