@@ -1,14 +1,20 @@
-import type { FocusHistory } from '../types'
-import { dateKeyFromDate, dayInitial, formatHoursDecimal, getTodayKey, lastNDates, migrateDayRecord } from '../utils'
+import type { CompletedTask, FocusHistory } from '../types'
+import { dateKeyFromDate, dayInitial, formatDuration, getTodayKey, lastNDates } from '../utils'
 
 interface Props {
   focusHistory: FocusHistory
   todayFocusSeconds: number
+  completedTasks: CompletedTask[]
 }
 
-// 24 single-hour buckets. Labels rendered every 3 hours; intermediate columns
-// remain unlabelled to keep the strip compact.
-const HOUR_LABELS = ['12a','','','3a','','','6a','','','9a','','','12p','','','3p','','','6p','','','9p','','']
+// Heatmap columns start at 9 AM; pre-9am hours wrap to the end (night-owl).
+const HOUR_ORDER = [...Array(24).keys()].map(i => (i + 9) % 24)
+
+function hourLabel(h: number): string {
+  if (h === 0) return '12a'
+  if (h === 12) return '12p'
+  return h < 12 ? `${h}a` : `${h - 12}p`
+}
 
 function getDayTotal(history: FocusHistory, key: string, fallbackTodaySeconds = 0): number {
   if (key === getTodayKey()) {
@@ -19,19 +25,11 @@ function getDayTotal(history: FocusHistory, key: string, fallbackTodaySeconds = 
 }
 
 function getDaySegments(history: FocusHistory, key: string): number[] {
-  const rec = history.days[key]
-  if (!rec) return new Array(24).fill(0)
-  // Defensive migration in case a legacy record sneaks through.
-  return migrateDayRecord({ ...rec, dateKey: key }).segmentSeconds
+  const segs = history.days[key]?.segmentSeconds
+  return segs && segs.length === 24 ? segs : new Array(24).fill(0)
 }
 
-function getDayTasksCompleted(history: FocusHistory, key: string): number {
-  const rec = history.days[key]
-  if (!rec) return 0
-  return migrateDayRecord({ ...rec, dateKey: key }).tasksCompleted
-}
-
-export default function FocusHistoryDashboard({ focusHistory, todayFocusSeconds }: Props) {
+export default function FocusHistoryDashboard({ focusHistory, todayFocusSeconds, completedTasks }: Props) {
   const today = new Date()
   const dates = lastNDates(7, today)
   const todayKey = getTodayKey()
@@ -45,14 +43,18 @@ export default function FocusHistoryDashboard({ focusHistory, todayFocusSeconds 
   const dailyTotalSeconds = dayTotals[dayTotals.length - 1].seconds
   const dailyAvgSeconds = weeklyTotalSeconds / 7
 
-  const tasksCompleted7Days = dayTotals.reduce((sum, { key }) => sum + getDayTasksCompleted(focusHistory, key), 0)
+  // Tasks Completed = entries in the completed log within the last-7-day window.
+  const windowKeys = new Set(dayTotals.map(d => d.key))
+  const tasksCompleted7Days = completedTasks.filter(c => windowKeys.has(dateKeyFromDate(new Date(c.completedAt)))).length
 
   const isEmpty = weeklyTotalSeconds === 0 && todayFocusSeconds === 0
 
   if (isEmpty) {
     return (
-      <section className="relative w-full px-6 py-16">
-        <h2 className="text-center text-xl font-bold text-slate-800 mb-6">Focus History</h2>
+      <section className="relative w-full px-4 sm:px-6 py-16">
+        <h2 className="text-center text-2xl font-bold text-slate-800 mb-6" style={{ fontFamily: 'Sora, sans-serif' }}>
+          Focus History
+        </h2>
         <div className="max-w-xl mx-auto frosted-glass rounded-2xl px-8 py-10 text-center">
           <p className="text-sm text-slate-600 leading-relaxed">
             Complete your first session to start tracking your focus history.
@@ -62,10 +64,8 @@ export default function FocusHistoryDashboard({ focusHistory, todayFocusSeconds 
     )
   }
 
-  // Bar chart: heights proportional to the max day in the visible window.
   const maxDaySeconds = Math.max(1, ...dayTotals.map(d => d.seconds))
 
-  // Heatmap: per-render max across the visible 7×24 grid.
   const segmentRows = dayTotals.map(d => ({
     date: d.date,
     key: d.key,
@@ -73,12 +73,10 @@ export default function FocusHistoryDashboard({ focusHistory, todayFocusSeconds 
   }))
   const maxBucket = Math.max(1, ...segmentRows.flatMap(r => r.segments))
 
-  // Discrete intensity bins for richer shading: empty / 5 levels.
-  // Each bucket maps to one of 6 visual states based on its share of maxBucket.
+  // Discrete intensity bins: empty + 5 levels of the brand-purple ramp.
   function intensityClass(sec: number): { bg: string; border: string } {
     if (sec === 0) return { bg: 'rgba(255,255,255,0.35)', border: 'rgba(255,255,255,0.4)' }
     const r = sec / maxBucket
-    // 5 progressively darker tones in brand purple family
     if (r <= 0.2) return { bg: 'hsl(248 70% 88%)', border: 'hsl(248 60% 80%)' }
     if (r <= 0.4) return { bg: 'hsl(248 72% 76%)', border: 'hsl(248 60% 68%)' }
     if (r <= 0.6) return { bg: 'hsl(248 75% 64%)', border: 'hsl(248 60% 55%)' }
@@ -86,16 +84,22 @@ export default function FocusHistoryDashboard({ focusHistory, todayFocusSeconds 
     return { bg: 'hsl(248 82% 40%)', border: 'hsl(248 70% 30%)' }
   }
 
+  const legendTones = ['rgba(255,255,255,0.5)', 'hsl(248 70% 88%)', 'hsl(248 72% 76%)', 'hsl(248 75% 64%)', 'hsl(248 82% 40%)']
+
   return (
-    <section className="relative w-full px-6 py-12">
-      <h2 className="text-center text-xl font-bold text-slate-800 mb-6">Focus History</h2>
+    <section className="relative w-full px-4 sm:px-6 py-12">
+      <h2 className="text-center text-2xl font-bold text-slate-800 mb-6 flex items-center justify-center gap-2" style={{ fontFamily: 'Sora, sans-serif' }}>
+        <span className="material-symbols-outlined text-primary">monitoring</span>
+        Focus History
+      </h2>
 
       <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* 7-Day Activity bar chart */}
         <div className="md:col-span-2 frosted-glass rounded-2xl p-5">
-          <h3 className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 mb-4">
-            7-Day Activity
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">7-Day Activity</h3>
+            <span className="text-[10px] font-semibold text-slate-400">Hours · Minutes</span>
+          </div>
           <div className="flex items-end justify-between gap-2 h-40 pt-5">
             {dayTotals.map(({ date, key, seconds }) => {
               const isToday = key === todayKey
@@ -116,17 +120,13 @@ export default function FocusHistoryDashboard({ focusHistory, todayFocusSeconds 
                           border: isToday ? '1px solid rgba(106,90,231,0.45)' : '1px solid rgba(167,139,250,0.35)',
                         }}
                       >
-                        <span className={`absolute -top-4 left-0 right-0 text-center text-[9px] font-bold tabular-nums ${isToday ? 'text-primary' : 'text-slate-400'}`}>
-                          {formatHoursDecimal(seconds)}
+                        <span className={`absolute -top-4 left-0 right-0 text-center text-[9px] font-bold tabular-nums whitespace-nowrap ${isToday ? 'text-primary' : 'text-slate-400'}`}>
+                          {formatDuration(seconds)}
                         </span>
                       </div>
                     )}
                   </div>
-                  <span
-                    className={`mt-2 text-[10px] font-bold uppercase tracking-wider ${
-                      isToday ? 'text-primary' : 'text-slate-400'
-                    }`}
-                  >
+                  <span className={`mt-2 text-[10px] font-bold uppercase tracking-wider ${isToday ? 'text-primary' : 'text-slate-400'}`}>
                     {dayInitial(date)}
                   </span>
                 </div>
@@ -135,68 +135,81 @@ export default function FocusHistoryDashboard({ focusHistory, todayFocusSeconds 
           </div>
         </div>
 
-        {/* Stats grid */}
+        {/* Stats grid 2×2 */}
         <div className="grid grid-cols-2 grid-rows-2 gap-3">
-          <StatTile label="Daily Total" value={formatHoursDecimal(dailyTotalSeconds)} />
-          <StatTile label="Daily Avg" value={formatHoursDecimal(dailyAvgSeconds)} />
-          <StatTile label="Weekly Total" value={formatHoursDecimal(weeklyTotalSeconds)} />
-          <StatTile label="Tasks Completed (7d)" value={String(tasksCompleted7Days)} />
+          <StatTile label="Daily Total" icon="timer" value={formatDuration(dailyTotalSeconds, 'tile')} />
+          <StatTile label="Daily Avg" icon="trending_up" value={formatDuration(dailyAvgSeconds, 'tile')} />
+          <StatTile label="Weekly Total" icon="calendar_month" value={formatDuration(weeklyTotalSeconds, 'tile')} />
+          <StatTile label="Tasks Completed" icon="task_alt" value={String(tasksCompleted7Days)} />
         </div>
       </div>
 
-      {/* 7-Day Focus Heatmap — hourly resolution, compact rows */}
+      {/* 7-Day Focus Heatmap — Hourly, columns start 9 AM, pre-9am wraps to the end */}
       <div className="max-w-5xl mx-auto mt-4 frosted-glass rounded-2xl p-5">
-        <h3 className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 mb-4">
-          7-Day Focus Heatmap (Hourly)
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">7-Day Focus Heatmap — Hourly</h3>
+          <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
+            <span className="material-symbols-outlined text-amber-500" style={{ fontSize: 13 }}>light_mode</span>
+            9 AM
+            <span className="material-symbols-outlined" style={{ fontSize: 12 }}>arrow_forward</span>
+            8 AM
+            <span className="material-symbols-outlined text-primary/60" style={{ fontSize: 13 }}>dark_mode</span>
+          </span>
+        </div>
         <div className="overflow-x-auto">
-          <div className="min-w-[560px]">
-            {/* Column headers — 24 narrow columns, labels every 3 hours */}
-            <div className="grid grid-cols-[20px_repeat(24,minmax(0,1fr))] gap-[2px] mb-1">
-              <span />
-              {HOUR_LABELS.map((h, i) => (
-                <span key={i} className="text-[8px] font-semibold text-slate-400 text-center tracking-tight leading-none">
-                  {h}
-                </span>
-              ))}
-            </div>
+          <div className="min-w-[640px]">
             {segmentRows.map(row => (
-              <div
-                key={row.key}
-                className="grid grid-cols-[20px_repeat(24,minmax(0,1fr))] gap-[2px] mb-[2px] items-center"
-              >
-                <span
-                  className={`text-[10px] font-bold uppercase ${
-                    row.key === todayKey ? 'text-primary' : 'text-slate-400'
-                  }`}
-                >
+              <div key={row.key} className="grid grid-cols-[24px_repeat(24,minmax(0,1fr))] gap-[3px] mb-[3px] items-center">
+                <span className={`text-[10px] font-bold uppercase ${row.key === todayKey ? 'text-primary' : 'text-slate-400'}`}>
                   {dayInitial(row.date)}
                 </span>
-                {row.segments.map((sec, i) => {
+                {HOUR_ORDER.map(h => {
+                  const sec = row.segments[h] || 0
                   const tone = intensityClass(sec)
                   return (
                     <div
-                      key={i}
-                      className="h-2.5 rounded-[2px] border"
+                      key={h}
+                      className="h-4 rounded-[3px] border"
                       style={{ background: tone.bg, borderColor: tone.border }}
-                      title={sec > 0 ? `${Math.round(sec / 60)} min` : ''}
+                      title={sec > 0 ? `${hourLabel(h)} — ${formatDuration(sec)}` : ''}
                     />
                   )
                 })}
               </div>
             ))}
+            {/* Column labels — every other hour to stay legible */}
+            <div className="grid grid-cols-[24px_repeat(24,minmax(0,1fr))] gap-[3px] mt-1">
+              <span />
+              {HOUR_ORDER.map((h, i) => (
+                <span key={h} className="text-[8px] font-semibold text-slate-400 text-center tracking-tight leading-none">
+                  {i % 2 === 0 ? hourLabel(h) : ''}
+                </span>
+              ))}
+            </div>
           </div>
+        </div>
+        <div className="flex items-center justify-end gap-1.5 mt-3">
+          <span className="text-[10px] font-semibold text-slate-400">Less</span>
+          {legendTones.map((t, i) => (
+            <span key={i} className="w-3 h-3 rounded-[3px] border border-white/50" style={{ background: t }} />
+          ))}
+          <span className="text-[10px] font-semibold text-slate-400">More</span>
         </div>
       </div>
     </section>
   )
 }
 
-function StatTile({ label, value }: { label: string; value: string }) {
+function StatTile({ label, value, icon }: { label: string; value: string; icon: string }) {
   return (
     <div className="frosted-glass rounded-2xl p-4 flex flex-col justify-between">
-      <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">{label}</span>
-      <span className="text-2xl font-bold text-slate-900 tracking-tight tabular-nums mt-2">{value}</span>
+      <div className="flex items-start justify-between">
+        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">{label}</span>
+        <span className="material-symbols-outlined text-primary/60" style={{ fontSize: 16 }}>{icon}</span>
+      </div>
+      <span className="text-2xl font-bold text-slate-900 tracking-tight tabular-nums mt-2" style={{ fontFamily: 'Sora, sans-serif' }}>
+        {value}
+      </span>
     </div>
   )
 }

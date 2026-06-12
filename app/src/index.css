@@ -1,16 +1,61 @@
 @import "tailwindcss";
 
+/* ── v3 design tokens (DESIGN_V3 §1) ───────────────────────────────────── */
 @theme {
   --color-primary: #6a5ae7;
-  --color-background-light: #f6f6f8;
-  --font-family-display: "Inter", sans-serif;
+  --color-primary-fixed: #5341cd;
+  --color-break: #14b8a6;
+  --color-break-fixed: #0e8c7e;
+  --color-break-container: #ccfbf1;
+  --color-success: #22c55e;
+  --color-error: #ba1a1a;
+  --color-warning: #f59e0b;
+  --color-surface-bg: #f6f6f8;
+  --color-surface: #fcf8ff;
+  --font-primary: "Sora", sans-serif;
+  --font-secondary: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
 }
 
-@font-face {
-  font-family: "Material Symbols Outlined";
-  src: url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
+:root {
+  --text-body: #2d3436;
+  --text-darkest: #0f172a;
+  --text-muted: #64748b;
+  --dur-quick: 150ms;
+  --dur-drawer: 300ms;
+  --ease-fluid: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+  color: var(--text-body);
+  background: #f6f6f8;
+}
+
+/* ── Backgrounds ───────────────────────────────────────────────────────── */
+.ethereal-bg {
+  background: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 50%, #e0e7ff 100%);
+}
+
+.session-bg {
+  background: linear-gradient(135deg, #ebebff 0%, #e4e1ff 40%, #eeeaff 70%, #f4f2ff 100%);
+}
+
+.celebratory-gradient {
+  background: linear-gradient(128.63deg, #fef3c7 0%, #fce7f3 50%, #fae8ff 100%);
+}
+
+/* Break screens: teal-tinted variant of the ethereal gradient. */
+.break-bg {
+  background: linear-gradient(135deg, #e0f7f2 0%, #f3e8ff 50%, #e0e7ff 100%);
+}
+
+/* ── Glass utilities ───────────────────────────────────────────────────── */
 .glass-orb {
   background: rgba(255, 255, 255, 0.18);
   backdrop-filter: blur(24px);
@@ -22,15 +67,15 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-.ethereal-blur {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.orb-glow {
-  box-shadow: 0 0 60px 10px rgba(106, 90, 231, 0.3);
+.glass-orb-break {
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow:
+    0 8px 40px 0 rgba(20, 184, 166, 0.14),
+    0 2px 16px 0 rgba(255, 255, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .glass-pill {
@@ -39,27 +84,10 @@
   border: 1px solid rgba(106, 90, 231, 0.2);
 }
 
-.sidebar-glass {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.sidebar-glass-right {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.ethereal-bg {
-  background: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 50%, #e0e7ff 100%);
-  background-size: 200% 200%;
-}
-
-.celebratory-gradient {
-  background: linear-gradient(135deg, #fef3c7 0%, #fce7f3 50%, #fae8ff 100%);
+.glass-pill-break {
+  backdrop-filter: blur(8px);
+  background: rgba(20, 184, 166, 0.1);
+  border: 1px solid rgba(20, 184, 166, 0.2);
 }
 
 .frosted-glass {
@@ -69,21 +97,21 @@
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-.active-orb {
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(32px) saturate(1.4);
-  -webkit-backdrop-filter: blur(32px) saturate(1.4);
+.glass-40 {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow:
-    0 8px 60px 0px rgba(106, 90, 231, 0.15),
-    0 2px 20px rgba(255, 255, 255, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
-.session-bg {
-  background: linear-gradient(135deg, #ebebff 0%, #e4e1ff 40%, #eeeaff 70%, #f4f2ff 100%);
+.glass-70 {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
+/* ── Orb shimmer ───────────────────────────────────────────────────────── */
 @keyframes orb-shimmer-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -92,4 +120,36 @@
 .orb-shimmer {
   animation: orb-shimmer-spin 45s linear infinite;
   border-radius: 50%;
+}
+
+/* ── Range sliders (Settings) ──────────────────────────────────────────── */
+input[type="range"].pf-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, #6a5ae7 0%, #6a5ae7 var(--fill, 50%), #e2e8f0 var(--fill, 50%), #e2e8f0 100%);
+  outline: none;
+}
+
+input[type="range"].pf-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #6a5ae7;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.25);
+  cursor: pointer;
+}
+
+input[type="range"].pf-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #6a5ae7;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.25);
+  cursor: pointer;
 }

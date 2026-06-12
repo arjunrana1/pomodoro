@@ -1,44 +1,48 @@
-import { useRef, useState } from 'react'
-import { formatTime, formatHours } from '../utils'
-import type { AppState } from '../types'
-import BrandMark from './BrandMark'
+import { useState } from 'react'
+import type { AppStore } from '../store'
+import { formatTime, formatDuration } from '../utils'
+import Header from './Header'
+import Fabs from './Fabs'
 import FocusHistoryDashboard from './FocusHistoryDashboard'
+import MarketingFooter from './MarketingFooter'
 
 interface Props {
-  state: AppState
-  selectPreset: (m: 15 | 20 | 25) => void
-  commitCustomMinutes: (raw: string) => boolean
-  setCustomMinutesError: (err: string | null) => void
-  startSession: (source: 'home' | 'plan') => void
-  togglePlanSidebar: () => void
-  toggleNotesDrawer: () => void
-  toggleSound: () => void
-  playClick: () => void
+  store: AppStore
+  openSettings: () => void
 }
 
-const presets = [15, 20, 25] as const
+const WORK_PRESETS = [15, 20, 25] as const
+const BREAK_PRESETS = [5, 10, 15] as const
 
-export default function HomeScreen({
-  state,
-  selectPreset,
-  commitCustomMinutes,
-  setCustomMinutesError,
-  startSession,
-  togglePlanSidebar,
-  toggleNotesDrawer,
-  toggleSound,
-  playClick,
-}: Props) {
+export default function HomeScreen({ store, openSettings }: Props) {
+  const {
+    state,
+    settings,
+    setMode,
+    toggleSound,
+    selectWorkPreset,
+    selectBreakPreset,
+    commitCustomMinutes,
+    setCustomMinutesError,
+    startSession,
+    toggleTasksDrawer,
+    toggleNotesDrawer,
+    playClick,
+  } = store
+
+  const isBreak = state.mode === 'break'
   const [showCustomInputState, setShowCustomInput] = useState(false)
-  const [customValue, setCustomValue] = useState(state.customMinutes != null ? String(state.customMinutes) : '')
-  const inputRef = useRef<HTMLInputElement | null>(null)
+  const customMinutes = isBreak ? state.customBreakMinutes : state.customWorkMinutes
+  const selectedPreset = isBreak ? state.selectedBreakPreset : state.selectedWorkPreset
+  const [customValue, setCustomValue] = useState(customMinutes != null ? String(customMinutes) : '')
 
-  // Derived: keep the pill open while there's an unresolved error, without
-  // needing a setState-inside-effect (which lint rightly discourages).
   const showCustomInput = showCustomInputState || !!state.customMinutesInputError
+  const customSelected = selectedPreset === null && (customMinutes != null || !!state.customMinutesInputError)
+  const startDisabled = customSelected && (state.customMinutesInputError !== null || customMinutes == null)
 
-  const customSelected = state.selectedPreset === null && (state.customMinutes != null || !!state.customMinutesInputError)
-  const startDisabled = customSelected && (state.customMinutesInputError !== null || state.customMinutes == null)
+  // Idle always previews the chosen target duration; count direction only
+  // changes the displayed number during a session (§4.2 is display-only).
+  const displaySeconds = state.secondsRemaining
 
   const handleCustomCommit = () => {
     const ok = commitCustomMinutes(customValue)
@@ -49,103 +53,69 @@ export default function HomeScreen({
     if (e.key === 'Enter') handleCustomCommit()
     if (e.key === 'Escape') {
       setShowCustomInput(false)
-      setCustomValue(state.customMinutes != null ? String(state.customMinutes) : '')
+      setCustomValue(customMinutes != null ? String(customMinutes) : '')
       setCustomMinutesError(null)
     }
   }
 
-  const handleCustomChange = (v: string) => {
-    setCustomValue(v)
-    if (state.customMinutesInputError) setCustomMinutesError(null)
-  }
-
-  const handlePresetClick = (m: 15 | 20 | 25) => {
-    selectPreset(m)
+  const handlePresetClick = (m: number) => {
+    if (isBreak) selectBreakPreset(m as 5 | 10 | 15)
+    else selectWorkPreset(m as 15 | 20 | 25)
     setCustomValue('')
     setShowCustomInput(false)
   }
 
-  const handleStartSession = () => {
+  const handleStart = () => {
     if (startDisabled) return
     playClick()
     startSession('home')
   }
 
+  const accentText = isBreak ? 'text-break' : 'text-primary'
+  const presets = isBreak ? BREAK_PRESETS : WORK_PRESETS
+
   return (
-    <div className="relative w-full ethereal-bg overflow-y-auto" style={{height: '100%'}}>
-      {/* === First fold: Timer area (full viewport height) === */}
+    <div className={`relative w-full overflow-y-auto ${isBreak ? 'break-bg' : 'ethereal-bg'}`} style={{ height: '100%' }}>
+      {/* === First fold === */}
       <div className="relative flex h-screen w-full items-center justify-center overflow-hidden">
-        <header className="fixed top-0 left-0 right-0 flex items-center px-6 py-4 z-30">
-          <div className="flex items-center gap-2.5">
-            <div className="shrink-0" style={{width: 35, height: 35}}>
-              <BrandMark />
-            </div>
-            <h2 className="text-base font-bold tracking-tight text-slate-800">Pomodoro Focus</h2>
-          </div>
-        </header>
+        <Header
+          mode={state.mode}
+          sessionActive={false}
+          soundEnabled={settings.soundEnabled}
+          setMode={setMode}
+          toggleSound={toggleSound}
+          openSettings={openSettings}
+        />
 
-        <aside className="fixed left-0 top-0 h-full flex flex-col items-center z-20 w-auto">
-          <div className="flex flex-col h-full items-center justify-center">
-            <button
-              onClick={togglePlanSidebar}
-              className="group flex flex-col items-center gap-4 py-6 px-2.5 transition-all duration-300 hover:bg-white/10 rounded-r-xl"
-            >
-              <span className="material-symbols-outlined text-primary/70 text-lg transition-transform group-hover:scale-110">
-                assignment_turned_in
-              </span>
-              <span className="[writing-mode:vertical-lr] rotate-180 text-[9px] font-bold uppercase tracking-[0.3em] text-slate-400">
-                Session Plan
-              </span>
-            </button>
-          </div>
-        </aside>
-
-        <aside className="fixed right-0 top-0 h-full flex flex-col items-center z-20 w-auto">
-          <div className="flex flex-col h-full items-center justify-center gap-4">
-            <button
-              onClick={toggleSound}
-              className="p-2 rounded-full hover:bg-white/20 transition-colors"
-            >
-              <span className="material-symbols-outlined text-primary/60 text-lg">
-                {state.soundEnabled ? 'volume_up' : 'volume_off'}
-              </span>
-            </button>
-            <button
-              onClick={toggleNotesDrawer}
-              className="group flex flex-col items-center gap-4 py-6 px-2.5 transition-all duration-300 hover:bg-white/10 rounded-l-xl"
-            >
-              <span className="material-symbols-outlined text-primary/50 text-lg transition-transform group-hover:scale-110">
-                edit_note
-              </span>
-              <span className="[writing-mode:vertical-lr] rotate-180 text-[9px] font-bold uppercase tracking-[0.3em] text-slate-400">
-                Notes
-              </span>
-            </button>
-          </div>
-        </aside>
-
-        <main className="flex flex-col items-center justify-center relative z-10">
-          <div className="glass-orb rounded-full w-[420px] h-[420px] md:w-[480px] md:h-[480px] flex flex-col items-center justify-center text-center relative overflow-hidden">
+        <main className="flex flex-col items-center justify-center relative z-10 px-4">
+          <div
+            className={`${isBreak ? 'glass-orb-break' : 'glass-orb'} rounded-full w-[min(88vw,420px)] h-[min(88vw,420px)] md:w-[480px] md:h-[480px] flex flex-col items-center justify-center text-center relative overflow-hidden`}
+          >
             <div className="absolute top-4 left-1/2 -translate-x-1/2 w-24 h-6 bg-white/30 rounded-full blur-lg pointer-events-none" />
 
             <div className="flex flex-col items-center mb-5">
-              <span className="text-slate-900 text-7xl md:text-8xl font-extralight tracking-tighter tabular-nums leading-none">
-                {formatTime(state.secondsRemaining)}
+              <span
+                className="text-slate-900 text-6xl sm:text-7xl md:text-8xl tracking-tighter tabular-nums leading-none"
+                style={{ fontFamily: 'Sora, sans-serif', fontWeight: 200 }}
+              >
+                {formatTime(displaySeconds)}
               </span>
-              <span className="text-slate-400 text-[10px] tracking-[0.25em] font-medium uppercase mt-3">
-                Ready to start?
+              <span className={`text-[10px] tracking-[0.25em] font-semibold uppercase mt-3 ${isBreak ? 'text-break' : 'text-slate-400'}`}>
+                {isBreak ? 'Take a breather' : 'Ready to start?'}
               </span>
             </div>
 
             <div className="flex flex-col items-center gap-2 mb-5">
-              <div className="flex gap-2.5 items-center">
+              <div className="flex gap-2 sm:gap-2.5 items-center">
                 {presets.map(d => (
                   <button
                     key={d}
                     onClick={() => handlePresetClick(d)}
-                    className={`px-4 py-1.5 rounded-full border text-sm font-medium transition-all ${
-                      state.selectedPreset === d
-                        ? 'bg-white/70 border-primary/30 text-primary font-semibold shadow-sm'
+                    className={`px-4 py-1.5 min-h-[36px] rounded-full border text-sm font-medium transition-all ${
+                      selectedPreset === d
+                        ? isBreak
+                          ? 'bg-white/70 border-break/40 text-break font-semibold shadow-sm'
+                          : 'bg-white/70 border-primary/30 text-primary font-semibold shadow-sm'
                         : 'bg-white/30 hover:bg-white/50 border-white/40 text-slate-600'
                     }`}
                   >
@@ -156,40 +126,45 @@ export default function HomeScreen({
                 {showCustomInput ? (
                   <div
                     className={`flex items-center gap-1 px-3 py-1 rounded-full border bg-white/70 ${
-                      state.customMinutesInputError ? 'border-red-400 ring-1 ring-red-300' : 'border-primary/30'
+                      state.customMinutesInputError ? 'border-red-400 ring-1 ring-red-300' : isBreak ? 'border-break/40' : 'border-primary/30'
                     }`}
                   >
                     <input
-                      ref={inputRef}
                       type="number"
                       min="1"
                       step="1"
                       value={customValue}
-                      onChange={e => handleCustomChange(e.target.value)}
+                      onChange={e => {
+                        setCustomValue(e.target.value)
+                        if (state.customMinutesInputError) setCustomMinutesError(null)
+                      }}
                       onKeyDown={handleCustomKeyDown}
                       onBlur={handleCustomCommit}
                       autoFocus
                       placeholder="min"
-                      className={`w-12 bg-transparent text-sm font-semibold focus:outline-none text-center ${
-                        state.customMinutesInputError ? 'text-red-500' : 'text-primary'
+                      className={`w-12 bg-transparent text-sm font-semibold focus:outline-none text-center font-mono ${
+                        state.customMinutesInputError ? 'text-red-500' : accentText
                       }`}
                     />
-                    <span className={`text-sm font-semibold ${state.customMinutesInputError ? 'text-red-500' : 'text-primary'}`}>m</span>
+                    <span className={`text-sm font-semibold ${state.customMinutesInputError ? 'text-red-500' : accentText}`}>m</span>
                   </div>
-                ) : state.customMinutes ? (
+                ) : customMinutes ? (
                   <button
                     onClick={() => {
                       setShowCustomInput(true)
-                      setCustomValue(String(state.customMinutes))
+                      setCustomValue(String(customMinutes))
                     }}
-                    className="px-4 py-1.5 rounded-full border text-sm font-semibold transition-all bg-white/70 border-primary/30 text-primary shadow-sm"
+                    className={`px-4 py-1.5 min-h-[36px] rounded-full border text-sm font-semibold transition-all bg-white/70 shadow-sm ${
+                      isBreak ? 'border-break/40 text-break' : 'border-primary/30 text-primary'
+                    }`}
                   >
-                    {state.customMinutes}m
+                    {customMinutes}m
                   </button>
                 ) : (
                   <button
                     onClick={() => setShowCustomInput(true)}
-                    className="w-8 h-8 rounded-full border bg-white/30 hover:bg-white/50 border-white/40 text-slate-500 flex items-center justify-center transition-all"
+                    className="w-9 h-9 rounded-full border bg-white/30 hover:bg-white/50 border-white/40 text-slate-500 flex items-center justify-center transition-all"
+                    aria-label="Custom duration"
                   >
                     <span className="material-symbols-outlined text-base">add</span>
                   </button>
@@ -201,131 +176,76 @@ export default function HomeScreen({
             </div>
 
             <button
-              onClick={handleStartSession}
+              onClick={handleStart}
               disabled={startDisabled}
-              className={`group relative flex items-center justify-center overflow-hidden rounded-full px-10 py-3 text-white text-sm font-bold transition-all ${
+              className={`group relative flex items-center justify-center overflow-hidden rounded-full px-10 py-3 min-h-[48px] text-white text-sm font-bold transition-all ${
                 startDisabled
                   ? 'bg-slate-300 cursor-not-allowed shadow-none'
-                  : 'bg-primary shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35 active:scale-95'
+                  : isBreak
+                    ? 'bg-break shadow-lg shadow-break/25 hover:shadow-xl hover:shadow-break/35 active:scale-95'
+                    : 'bg-primary shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35 active:scale-95'
               }`}
             >
               <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
               <span className="relative flex items-center gap-2">
-                Start Session
+                {isBreak ? 'Start Break' : 'Start Session'}
                 <span className="material-symbols-outlined text-base">play_arrow</span>
               </span>
             </button>
 
-            <div className="flex items-center gap-6 mt-5">
-              <div className="flex flex-col items-center">
-                <span className="text-slate-700 font-bold text-xs">{formatHours(state.todayFocusSeconds)}</span>
-                <span className="text-slate-400 text-[8px] uppercase font-bold tracking-wider">Focus Time Today</span>
+            {/* Daily stats — Work only (hidden in Break, AC-2) */}
+            {!isBreak && (
+              <div className="flex items-center gap-6 mt-5">
+                <div className="flex flex-col items-center">
+                  <span className="text-slate-700 font-bold text-xs">{formatDuration(state.dailyStats.focusSeconds)}</span>
+                  <span className="text-slate-400 text-[8px] uppercase font-bold tracking-wider">Focus Time Today</span>
+                </div>
+                <div className="w-px h-4 bg-slate-300/50" />
+                <div className="flex flex-col items-center">
+                  <span className="text-slate-700 font-bold text-xs">{state.dailyStats.sessionsCount}</span>
+                  <span className="text-slate-400 text-[8px] uppercase font-bold tracking-wider">Sessions</span>
+                </div>
               </div>
-              <div className="w-px h-4 bg-slate-300/50" />
-              <div className="flex flex-col items-center">
-                <span className="text-slate-700 font-bold text-xs">{state.todaySessionsCount}</span>
-                <span className="text-slate-400 text-[8px] uppercase font-bold tracking-wider">Sessions</span>
-              </div>
-            </div>
+            )}
           </div>
         </main>
 
-        <div className="absolute top-[5%] left-[3%] w-96 h-96 rounded-full blur-[60px] pointer-events-none" style={{background: 'radial-gradient(circle, rgba(139,92,246,0.75) 0%, rgba(139,92,246,0.30) 50%, transparent 70%)'}} />
-        <div className="absolute bottom-[5%] right-[3%] w-[420px] h-[420px] rounded-full blur-[65px] pointer-events-none" style={{background: 'radial-gradient(circle, rgba(236,72,153,0.70) 0%, rgba(236,72,153,0.25) 50%, transparent 70%)'}} />
-        <div className="absolute top-[2%] right-[18%] w-64 h-64 rounded-full blur-[50px] pointer-events-none" style={{background: 'radial-gradient(circle, rgba(56,189,248,0.65) 0%, rgba(56,189,248,0.22) 50%, transparent 70%)'}} />
-        <div className="absolute bottom-[22%] left-[15%] w-72 h-72 rounded-full blur-[55px] pointer-events-none" style={{background: 'radial-gradient(circle, rgba(167,139,250,0.60) 0%, rgba(167,139,250,0.22) 50%, transparent 70%)'}} />
-        <div className="absolute top-[40%] right-[1%] w-56 h-56 rounded-full blur-[50px] pointer-events-none" style={{background: 'radial-gradient(circle, rgba(251,146,60,0.50) 0%, rgba(251,146,60,0.18) 50%, transparent 70%)'}} />
+        <DecorativeOrbs isBreak={isBreak} />
       </div>
 
-      {/* === Below the fold: Focus History dashboard === */}
+      {/* FABs — Work mode only */}
+      {!isBreak && (
+        <Fabs
+          activeTaskCount={state.tasks.filter(t => !t.checked).length}
+          toggleNotesDrawer={toggleNotesDrawer}
+          toggleTasksDrawer={toggleTasksDrawer}
+        />
+      )}
+
+      {/* === Below the fold: dashboard + footer (reachable by scroll in both modes) === */}
       <FocusHistoryDashboard
         focusHistory={state.focusHistory}
-        todayFocusSeconds={state.todayFocusSeconds}
+        todayFocusSeconds={state.dailyStats.focusSeconds}
+        completedTasks={state.completedTasks}
       />
-
-      {/* === Marketing footer === */}
-      <footer className="relative w-full bg-white/60 backdrop-blur-sm border-t border-white/40">
-        <div className="max-w-2xl mx-auto px-8 py-16">
-          <section className="mb-12">
-            <h3 className="text-xl font-bold text-slate-800 mb-1">What is Pomodoro Focus?</h3>
-            <div className="w-8 h-0.5 bg-primary/40 mb-4" />
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Pomodoro Focus is a Pomodoro-inspired focus timer designed to help you work with intention.
-              Set a focus duration, plan your tasks, and let the timer keep you accountable — all
-              within a calming, distraction-free interface.
-            </p>
-          </section>
-
-          <section className="mb-12">
-            <h3 className="text-xl font-bold text-slate-800 mb-1">What is the Pomodoro Technique?</h3>
-            <div className="w-8 h-0.5 bg-primary/40 mb-4" />
-            <p className="text-sm text-slate-600 leading-relaxed">
-              The Pomodoro Technique is a time management method developed by Francesco Cirillo.
-              It uses a timer to break work into focused intervals — traditionally 25 minutes —
-              separated by short breaks. Each interval is called a "pomodoro," named after the
-              tomato-shaped kitchen timer Cirillo used as a university student.
-            </p>
-          </section>
-
-          <section className="mb-12">
-            <h3 className="text-xl font-bold text-slate-800 mb-1">How to Use Pomodoro Focus</h3>
-            <div className="w-8 h-0.5 bg-primary/40 mb-4" />
-            <ol className="text-sm text-slate-600 leading-relaxed space-y-2 list-decimal list-inside">
-              <li>Choose a focus duration (15, 20, or 25 minutes) or set a custom time</li>
-              <li>Optionally add tasks to your session plan</li>
-              <li>Click "Start Session" and focus on your work</li>
-              <li>Use the pause button if you need a brief interruption</li>
-              <li>When the timer ends, review your completed tasks and start a new session</li>
-            </ol>
-          </section>
-
-          <section className="mb-12">
-            <h3 className="text-xl font-bold text-slate-800 mb-1">Features</h3>
-            <div className="w-8 h-0.5 bg-primary/40 mb-4" />
-            <ul className="text-sm text-slate-600 leading-relaxed space-y-3">
-              <li>
-                <span className="font-semibold text-slate-700">Flexible Timer</span>
-                <span className="text-slate-400 mx-1.5">—</span>
-                Choose from preset durations (15, 20, 25 min) or set any custom duration that fits your workflow.
-              </li>
-              <li>
-                <span className="font-semibold text-slate-700">Session Planning</span>
-                <span className="text-slate-400 mx-1.5">—</span>
-                Add tasks before you begin so you know exactly what to focus on during each session.
-              </li>
-              <li>
-                <span className="font-semibold text-slate-700">Session Notes</span>
-                <span className="text-slate-400 mx-1.5">—</span>
-                Capture ideas, blockers, or reminders while you work without breaking your flow.
-              </li>
-              <li>
-                <span className="font-semibold text-slate-700">Daily Tracking</span>
-                <span className="text-slate-400 mx-1.5">—</span>
-                See your total focus time and number of sessions completed today at a glance.
-              </li>
-              <li>
-                <span className="font-semibold text-slate-700">Focus History</span>
-                <span className="text-slate-400 mx-1.5">—</span>
-                Visualize your last 7 days of focus time, including a 2-hour-segment heatmap of when you do your best work.
-              </li>
-              <li>
-                <span className="font-semibold text-slate-700">Session Summary</span>
-                <span className="text-slate-400 mx-1.5">—</span>
-                Review your completed and pending tasks after each session to see your progress.
-              </li>
-              <li>
-                <span className="font-semibold text-slate-700">Sound Cues</span>
-                <span className="text-slate-400 mx-1.5">—</span>
-                Audio feedback for start, pause, resume, stop, and completion so you can stay heads-down.
-              </li>
-            </ul>
-          </section>
-
-          <div className="text-center pt-6 border-t border-slate-200/60">
-            <p className="text-xs text-slate-400">Pomodoro Focus Timer</p>
-          </div>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
+  )
+}
+
+function DecorativeOrbs({ isBreak }: { isBreak: boolean }) {
+  // Break swaps the violet/pink orbs for teal tints (DESIGN_V3 §1.3).
+  const a = isBreak ? 'rgba(94,234,212,0.70)' : 'rgba(139,92,246,0.75)'
+  const aSoft = isBreak ? 'rgba(94,234,212,0.28)' : 'rgba(139,92,246,0.30)'
+  const b = isBreak ? 'rgba(45,212,191,0.60)' : 'rgba(236,72,153,0.70)'
+  const bSoft = isBreak ? 'rgba(45,212,191,0.22)' : 'rgba(236,72,153,0.25)'
+  return (
+    <>
+      <div className="absolute top-[5%] left-[3%] w-96 h-96 rounded-full blur-[60px] pointer-events-none" style={{ background: `radial-gradient(circle, ${a} 0%, ${aSoft} 50%, transparent 70%)` }} />
+      <div className="absolute bottom-[5%] right-[3%] w-[420px] h-[420px] rounded-full blur-[65px] pointer-events-none" style={{ background: `radial-gradient(circle, ${b} 0%, ${bSoft} 50%, transparent 70%)` }} />
+      <div className="absolute top-[2%] right-[18%] w-64 h-64 rounded-full blur-[50px] pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(56,189,248,0.65) 0%, rgba(56,189,248,0.22) 50%, transparent 70%)' }} />
+      <div className="absolute bottom-[22%] left-[15%] w-72 h-72 rounded-full blur-[55px] pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(167,139,250,0.60) 0%, rgba(167,139,250,0.22) 50%, transparent 70%)' }} />
+      <div className="absolute top-[40%] right-[1%] w-56 h-56 rounded-full blur-[50px] pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(251,146,60,0.50) 0%, rgba(251,146,60,0.18) 50%, transparent 70%)' }} />
+    </>
   )
 }

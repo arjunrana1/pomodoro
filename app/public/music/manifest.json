@@ -1,0 +1,76 @@
+{
+  "tracks": [
+    {
+      "id": "01-morning-coffee",
+      "title": "Morning Coffee",
+      "artist": "HoliznaCC0",
+      "duration": "3:11",
+      "src": "/music/01-morning-coffee.mp3",
+      "license": "CC0 1.0",
+      "source": "https://freemusicarchive.org/music/holiznacc0/lo-fi-and-chill"
+    },
+    {
+      "id": "02-vintage",
+      "title": "Vintage",
+      "artist": "HoliznaCC0",
+      "duration": "2:53",
+      "src": "/music/02-vintage.mp3",
+      "license": "CC0 1.0",
+      "source": "https://freemusicarchive.org/music/holiznacc0/lo-fi-and-chill"
+    },
+    {
+      "id": "03-a-little-shade",
+      "title": "A Little Shade",
+      "artist": "HoliznaCC0",
+      "duration": "2:58",
+      "src": "/music/03-a-little-shade.mp3",
+      "license": "CC0 1.0",
+      "source": "https://freemusicarchive.org/music/holiznacc0/lo-fi-and-chill"
+    },
+    {
+      "id": "04-seasons-change",
+      "title": "Seasons Change",
+      "artist": "HoliznaCC0",
+      "duration": "2:15",
+      "src": "/music/04-seasons-change.mp3",
+      "license": "CC0 1.0",
+      "source": "https://freemusicarchive.org/music/holiznacc0/lo-fi-and-chill"
+    },
+    {
+      "id": "05-busted-jazz",
+      "title": "Busted Jazz",
+      "artist": "HoliznaCC0",
+      "duration": "2:29",
+      "src": "/music/05-busted-jazz.mp3",
+      "license": "CC0 1.0",
+      "source": "https://freemusicarchive.org/music/holiznacc0/lo-fi-and-chill"
+    },
+    {
+      "id": "06-creature-comforts",
+      "title": "Creature Comforts",
+      "artist": "HoliznaCC0",
+      "duration": "2:54",
+      "src": "/music/06-creature-comforts.mp3",
+      "license": "CC0 1.0",
+      "source": "https://freemusicarchive.org/music/holiznacc0/lo-fi-and-chill"
+    },
+    {
+      "id": "07-foggy-headed",
+      "title": "Foggy Headed",
+      "artist": "HoliznaCC0",
+      "duration": "4:06",
+      "src": "/music/07-foggy-headed.mp3",
+      "license": "CC0 1.0",
+      "source": "https://freemusicarchive.org/music/holiznacc0/lo-fi-and-chill"
+    },
+    {
+      "id": "08-something-in-the-air",
+      "title": "Something In the Air",
+      "artist": "HoliznaCC0",
+      "duration": "2:11",
+      "src": "/music/08-something-in-the-air.mp3",
+      "license": "CC0 1.0",
+      "source": "https://freemusicarchive.org/music/holiznacc0/lo-fi-and-chill"
+    }
+  ]
+}
