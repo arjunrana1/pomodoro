@@ -215,11 +215,7 @@ export default function HomeScreen({ store, openSettings }: Props) {
 
       {/* FABs — Work mode only */}
       {!isBreak && (
-        <Fabs
-          activeTaskCount={state.tasks.filter(t => !t.checked).length}
-          toggleNotesDrawer={toggleNotesDrawer}
-          toggleTasksDrawer={toggleTasksDrawer}
-        />
+        <Fabs toggleNotesDrawer={toggleNotesDrawer} toggleTasksDrawer={toggleTasksDrawer} />
       )}
 
       {/* === Below the fold: dashboard + footer (reachable by scroll in both modes) === */}

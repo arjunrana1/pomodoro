@@ -90,6 +90,15 @@ Record these end-to-end (video + trace):
 
 ---
 
+## 6. Dashboard demo data (seeded, not real sessions)
+
+The Focus History dashboard is tested against **seeded localStorage**, not by running real sessions. A committed seeder lives at **`app/docs/seed-dashboard.js`**.
+
+- **Manual use:** open the app at `http://127.0.0.1:5173/` → DevTools Console → paste the file → it writes data and reloads. `seedDashboard.clear()` removes it.
+- **What it writes (only):** `pomodoro-focus-history` (14 `DayRecord`s, 24 hourly `segmentSeconds` each) + `pomodoro-focus-completed-tasks` (~14 entries across the last 7 days). Neither key triggers the fresh-start purge.
+- **Edge cases baked in** (so one seed exercises the whole dashboard): a **zero day** (baseline line), a **peak day** (max heatmap intensity / tallest bar), **today** non-zero (Daily Total), **pre-9 AM** hours (night-owl wrap-to-end), **late-night** and **evening** hours, `sessionsCount` consistent with totals, and completed tasks driving the **Tasks Completed** tile + drawer log.
+- **In automated tests:** unit/integration tests should import the same dataset shape (or a trimmed fixture) and assert the computed Daily Total / Daily Avg / Weekly Total / Tasks Completed, bar heights, the 9 AM→end column order, and intensity scaling (AC-26, AC-27, AC-29). E2E may inject via `page.addInitScript` using the seeder's logic before navigation.
+
 ## 5. Definition of done
 - Every AC has ≥1 passing test; all listed E2E journeys pass at mobile + desktop viewports.
 - Vitest coverage reported (aim meaningful coverage of `store`, `utils`, timer, formatting, persistence — not a hard %).

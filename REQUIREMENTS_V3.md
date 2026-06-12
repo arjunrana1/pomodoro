@@ -90,14 +90,14 @@ State router renders by `(mode, status)`. Below-the-fold dashboard + footer rend
 
 ### 5.1 Access
 - Opened via the **Tasks FAB** (bottom-right) — available in **all Work states** (idle, active, complete), **not** locked during a session (changed from v2). Hidden in Break.
-- FAB shows a **count badge** = number of active (not-yet-completed) plan tasks.
+- The Tasks FAB is a plain round CTA — **no count badge**.
 
 ### 5.2 Drawer contents (`Session Plan`)
 - Title **Session Plan**, close `✕`.
 - **ADD TASK** (title input, required) + **TIME (MINUTES)** (whole number ≥ 1, required) + **＋ Add Task**. Validation: disable Add Task until both valid, or show inline error. Inputs clear on add; drawer stays open.
 - **CURRENT BREAKDOWN** with a `N total` minutes pill → active task rows: drag handle, circle checkbox, title, `Scheduled for N min` subtext, `Nm` minute pill, delete. Drag-to-reorder (long-press + drag on mobile). Duplicate titles allowed; no per-task or count limits.
 - **COMPLETED TASKS** with a `N done` pill → see §6.
-- Bottom CTA **▷ Start Focused Session** — disabled until ≥1 valid active task; starts a Work session using the **sum of active task minutes**; drawer closes first.
+- Bottom CTA **▷ Start Focused Session** — only visible while no session is running/paused (idle); disabled until ≥1 valid active task; starts a Work session using the **sum of active task minutes**; drawer closes first.
 
 ### 5.3 Active-session checklist
 - If plan tasks exist, the active Work session shows them with progress `X of Y · <total>` and a `+N more` expander on mobile. Check/uncheck any time; no effect on timer; completed appear struck through.
@@ -323,7 +323,7 @@ Tests map to these IDs (TEST_PLAN_V3.md). "Work" = Work mode unless noted.
 - AC-12 Cross-midnight Work session attributes to its start day.
 
 **Tasks / Completed**
-- AC-13 Tasks FAB available in all Work states (incl. active); hidden in Break; badge = active task count.
+- AC-13 Tasks FAB available in all Work states (incl. active); hidden in Break; plain round CTA with no badge; the Start Focused Session CTA appears only while idle.
 - AC-14 Add validates (title + whole minutes ≥1); reorder via drag; delete works; duplicates allowed.
 - AC-15 Checking a task during a session moves it to Completed Tasks with timestamp + duration, newest-first.
 - AC-16 No per-row edit/delete/undo on completed tasks; only Clear-all with confirm (both Tasks drawer + Settings clear the same log).

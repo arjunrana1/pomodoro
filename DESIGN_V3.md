@@ -94,7 +94,7 @@ Fidelity note: match look and hierarchy closely, not pixel-perfectly. Exact blur
 
 **Header (all screens).** Brand mark (logo + "Pomodoro Focus") top-left. **Work / Break segmented toggle** center (desktop) — pill, glass-40 track, selected segment filled (Work=primary, Break=break-teal). **Sound (speaker) icon** + **Settings (gear) icon** top-right. During an active session the toggle is **disabled/greyed** with a lock glyph (see REQUIREMENTS_V3 §3). On mobile the toggle becomes a full-width pill below the brand (Break/idle) — see per-screen notes.
 
-**FABs.** Circular floating buttons: **Notes FAB** bottom-left (`--glass-70`, notes/edit icon), **Tasks FAB** bottom-right (`--primary` filled, checklist icon, `--color-error` count **badge** top-right). Reusable components `FAB · Notes` and `FAB · Tasks (with badge)`. Present on Home (idle), Dashboard, and active Work session. **Hidden in Break mode and on Flow Complete / Break Done.**
+**FABs.** Circular floating buttons: **Notes FAB** bottom-left (`--glass-70`, notes/edit icon), **Tasks FAB** bottom-right (`--primary` filled, checklist icon) — both plain round CTAs, **no badges**. Each drawer slides in from its FAB's side: Tasks from the right, Notes from the left. Reusable components `FAB · Notes` and `FAB · Tasks`. Present on Home (idle), Dashboard, and active Work session. **Hidden in Break mode and on Flow Complete / Break Done.**
 
 ---
 
@@ -106,7 +106,7 @@ Each entry: `reference image` → purpose → key elements.
 Work idle home. Ethereal gradient bg + blurred orbs. Header with Work/Break toggle (Work selected), gear + speaker. Center **Timer Orb** (glass-40, 480) showing `25:00`, subtitle `READY TO START?`, duration pills `15m 20m 25m +` (25m selected by default — see REQUIREMENTS §4), primary CTA **Start Session ▷**, daily stats row beneath (`0h` / `FOCUS TIME TODAY`, `0` / `SESSIONS`). Notes FAB bottom-left, Tasks FAB bottom-right. Below the fold (scroll): Focus History dashboard, then marketing footer.
 
 ### 3.2 `A · Home — Mobile (idle, FABs).jpg`
-Mobile Work idle. Brand top-left, speaker top-right. Orb `25:00`, `READY TO START?`, pills `15m 20m 25m +` (25m selected), **Start Session ▷**, stats (`0h FOCUS TIME` / `0 SESSIONS`). Notes FAB bottom-left (white glass), Tasks FAB bottom-right (purple, badge `3`).
+Mobile Work idle. Brand top-left, speaker top-right. Orb `25:00`, `READY TO START?`, pills `15m 20m 25m +` (25m selected), **Start Session ▷**, stats (`0h FOCUS TIME` / `0 SESSIONS`). Notes FAB bottom-left (white glass), Tasks FAB bottom-right (purple, no badge — supersedes the screenshot's `3` badge).
 
 ### 3.3 `Home — Mobile (Break mode).jpg`
 Mobile Break idle. Teal-tinted bg + teal orb glow. Brand (teal dot) + speaker. **Work/Break toggle pill** below brand (Break selected, teal). Orb `05:00`, subtitle `TAKE A BREATHER`, break pills `5m 10m 15m +` (5m selected, default), CTA **Start Break ▷** (teal). **No daily stats, no FABs** (Tasks/Notes hidden in Break).
@@ -127,7 +127,7 @@ Session Plan / Tasks drawer (glass-70, backdrop-blur, radius-2xl). Header: check
 Notes drawer (glass-70). Header: edit icon + **Notes** + `✕`. **ADD NOTE** → `Capture a thought…` textarea. **＋ Add Note** button. **SAVED NOTES** + count pill → note cards (`Today · 2:14 PM` timestamp · note text · edit ✎ + delete 🗑 icons).
 
 ### 3.9 `E · Desktop — FAB + Drawer (Tasks open).jpg`
-Desktop with Session Plan drawer open (left, 320 wide) over a dimmed home; demonstrates drawer-over-content + scrim. Same drawer contents as §3.7.
+Desktop with Session Plan drawer open (right, 320 wide — supersedes the screenshot's left placement; the drawer opens from the Tasks FAB's side) over a dimmed home; demonstrates drawer-over-content + scrim. Same drawer contents as §3.7.
 
 ### 3.10 `Data Dashboard — Desktop.jpg`
 Focus History dashboard (below-the-fold on Home; on both desktop and mobile via scroll — no separate route). Centered **Focus History** title. **7-Day Activity** bar chart card (label `Hours · Minutes`; day initials `S M T W T F`; bars annotated `1h 24m`, `18m`, `1h 48m`; today emphasized). **Stats grid** 2×2: **DAILY TOTAL** `0h 0m`, **DAILY AVG** `0h 36m`, **WEEKLY TOTAL** `4h 6m`, **TASKS COMPLETED** `4`. **7-Day Focus Heatmap — Hourly** card: 7 day-rows × hourly columns starting **9a** (`9a 10a … 12a 1a`), range label `9 AM – 1 AM`, pre-9am hours wrap to the end; `Less ▢▢▢ More` legend. FABs present.
@@ -149,4 +149,4 @@ Isolated header component reference (brand left, controls right) — see §2.
 
 ## 4. Components inventory (reusable)
 
-From the design file: **Timer Orb**, **FAB · Notes**, **FAB · Tasks (with badge)**, **Tasks Panel — Mobile drawer**, **Notes Panel — Mobile drawer**, plus header **Mode Toggle**, duration **pills**, primary/secondary **buttons**, **stat tile**, **task row** (active + completed variants), **note card**, **settings card/section**, **toggle switch**, **slider**, **track row**, **Spotify panel** (connected/disconnected). Build these as shared components so Work/Break variants are prop-driven (accent = primary vs break).
+From the design file: **Timer Orb**, **FAB · Notes**, **FAB · Tasks**, **Tasks Panel — Mobile drawer**, **Notes Panel — Mobile drawer**, plus header **Mode Toggle**, duration **pills**, primary/secondary **buttons**, **stat tile**, **task row** (active + completed variants), **note card**, **settings card/section**, **toggle switch**, **slider**, **track row**, **Spotify panel** (connected/disconnected). Build these as shared components so Work/Break variants are prop-driven (accent = primary vs break).

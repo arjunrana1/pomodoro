@@ -1,16 +1,15 @@
 interface Props {
-  /** Number of active (unchecked) plan tasks — shown as the Tasks badge. */
-  activeTaskCount: number
   toggleNotesDrawer: () => void
   toggleTasksDrawer: () => void
 }
 
 /**
  * Floating action buttons: Notes bottom-left (glass), Tasks bottom-right
- * (primary, error-count badge). Rendered in all Work states; hidden in Break
- * and on completion screens (callers decide).
+ * (primary) — plain round CTAs, no badges. Each drawer slides in from its
+ * FAB's side. Rendered in all Work states; hidden in Break and on completion
+ * screens (callers decide).
  */
-export default function Fabs({ activeTaskCount, toggleNotesDrawer, toggleTasksDrawer }: Props) {
+export default function Fabs({ toggleNotesDrawer, toggleTasksDrawer }: Props) {
   return (
     <>
       <button
@@ -27,11 +26,6 @@ export default function Fabs({ activeTaskCount, toggleNotesDrawer, toggleTasksDr
         aria-label="Open session plan"
       >
         <span className="material-symbols-outlined text-white text-2xl">checklist</span>
-        {activeTaskCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-error text-white text-[11px] font-bold flex items-center justify-center border-2 border-white/70">
-            {activeTaskCount}
-          </span>
-        )}
       </button>
     </>
   )

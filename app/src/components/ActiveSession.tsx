@@ -184,11 +184,7 @@ export default function ActiveSession({ store, openSettings }: Props) {
 
       {/* FABs — Work sessions only (AC-13, AC-18) */}
       {!isBreak && (
-        <Fabs
-          activeTaskCount={tasks.filter(t => !t.checked).length}
-          toggleNotesDrawer={toggleNotesDrawer}
-          toggleTasksDrawer={toggleTasksDrawer}
-        />
+        <Fabs toggleNotesDrawer={toggleNotesDrawer} toggleTasksDrawer={toggleTasksDrawer} />
       )}
     </div>
   )

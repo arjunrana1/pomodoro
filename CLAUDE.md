@@ -73,9 +73,9 @@ Each row tells you exactly which file owns what visual surface. **Edit only the 
 | Active session (Work **and** Break): orb, timer, Pause/Resume + Stop / End Break, task checklist + `+N more` expander, Spotify mini-player | `components/ActiveSession.tsx` | Count direction is display-only: `countUp ? initial - remaining : remaining`. Shimmer pauses via `animationPlayState`. |
 | Flow Complete modal (Work completion) | `components/FlowComplete.tsx` | Elapsed (stopped) vs initial (natural); `Xh Ym` format; no FABs. |
 | Break Done card | `components/BreakDone.tsx` | "You took Nm to recharge." CTA `newSession('work')` → Work Home; gear stays. |
-| Notes + Tasks FABs (badge = active task count) | `components/Fabs.tsx` | Hidden in Break + on completion screens (callers decide). |
-| Session Plan drawer (left): add/validate task, drag-reorder, CURRENT BREAKDOWN, COMPLETED TASKS log + Clear-all, Start Focused Session CTA | `components/TasksDrawer.tsx` | Checking a task moves it to the completed log instantly; unchecking pulls it back. CTA hidden while a session runs. |
-| Notes drawer (right): textarea, timestamped note cards, edit/delete | `components/NotesDrawer.tsx` | Click-outside closes; Escape doesn't (AC-19). |
+| Notes + Tasks FABs (plain round CTAs, no badges) | `components/Fabs.tsx` | Hidden in Break + on completion screens (callers decide). |
+| Session Plan drawer (right, same side as its FAB): add/validate task, drag-reorder, CURRENT BREAKDOWN, COMPLETED TASKS log + Clear-all, Start Focused Session CTA | `components/TasksDrawer.tsx` | Checking a task moves it to the completed log instantly; unchecking pulls it back. CTA only rendered while idle (hidden during running/paused). |
+| Notes drawer (left, same side as its FAB): textarea, timestamped note cards, edit/delete | `components/NotesDrawer.tsx` | Click-outside closes; Escape doesn't (AC-19). |
 | Settings screen: Timer (direction + mode mirror), Sound (toggle + volume), Music (lofi list + transport + volume, Spotify panel), Data & Privacy | `components/SettingsScreen.tsx` | Full screen via gear, not a modal. Local sub-components: Segmented, Toggle, VolumeSlider, DangerButton. |
 | Spotify panel (Settings): connected/disconnected states, now playing, transport, Disconnect, Premium note | `components/SpotifyPanel.tsx` | Polls now-playing every 5 s while connected. |
 | Spotify mini-player (active session) | `components/SpotifyMiniPlayer.tsx` | Renders nothing if no playback. |

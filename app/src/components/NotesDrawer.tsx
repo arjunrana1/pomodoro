@@ -67,8 +67,8 @@ export default function NotesDrawer({ store }: Props) {
 
       <aside
         ref={drawerRef}
-        className={`fixed right-0 top-0 h-full z-50 w-full max-w-[360px] sm:w-80 bg-white/90 backdrop-blur-xl shadow-2xl border-l border-white/40 flex flex-col transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
+        className={`fixed left-0 top-0 h-full z-50 w-full max-w-[360px] sm:w-80 bg-white/90 backdrop-blur-xl shadow-2xl border-r border-white/40 flex flex-col transition-transform duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         aria-label="Notes"
       >
