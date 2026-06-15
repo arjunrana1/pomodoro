@@ -13,7 +13,7 @@ Orientation for Claude. The goal: jump directly to the right file without re-rea
 2. `REQUIREMENTS_V3.md` — product behavior, decisions, data model, **acceptance criteria (§17)**. Source of truth. Supersedes `PRD.md` (v2; keep for unchanged Work-session mechanics).
 3. `DESIGN_V3.md` — design tokens + per-screen visual spec. Supersedes `DESIGN.md` / `design_tokens.md` (v2).
 4. `reference_designs/v3/*.jpg` — design screenshots (visual confirmation only; docs win on conflict).
-5. `TEST_PLAN_V3.md` — **not yet executed**: a separate testing session sets up Vitest + Playwright and covers every AC.
+5. `TEST_PLAN_V3.md` — the test plan. **Vitest unit+integration suite is built and green** (130 tests, all 34 ACs; see `app/docs/test-results-v3.md`). Run `cd app && npm test`. Playwright E2E is scaffolded (`app/e2e/`, `playwright.config.ts`) but **not yet executed**.
 
 **Spotify:** Authorization Code + PKCE, frontend-only. Client ID lives in `app/.env` as `VITE_SPOTIFY_CLIENT_ID` (public identifier, committed intentionally). Dev OAuth must run on `http://127.0.0.1:5173` (registered redirect URI is `http://127.0.0.1:5173/callback`, **not** localhost). Prod redirect: `https://www.pomodorofocus.net/callback`.
 
