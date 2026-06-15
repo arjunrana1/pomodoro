@@ -132,10 +132,13 @@ describe('AC-8 pause / resume / no reset', () => {
   })
 })
 
-// AC-11 + AC-28 — Work Stop: Flow Complete, history gets elapsed, daily stats DO NOT
-// move, sessionsCount stays put; elapsed (not initial) is surfaced.
+// AC-11 + AC-28 — Work Stop: Flow Complete, history gets elapsed, sessionsCount
+// stays put; elapsed (not initial) is surfaced. Per product decision, the elapsed
+// focus time IS added to today's focus total (so the Home orb matches the
+// dashboard) — this intentionally diverges from the literal §4.4/AC-11 wording
+// ("daily stats not incremented"); only the sessions counter is left untouched.
 describe('AC-11 / AC-28 Work stop', () => {
-  it('stop records elapsed to history but never to daily stats or sessionsCount', () => {
+  it('stop records elapsed to history + today focus total, but not the sessions count', () => {
     const { result } = mount()
     act(() => result.current.selectWorkPreset(25))
     act(() => result.current.startSession('home'))
@@ -156,8 +159,9 @@ describe('AC-11 / AC-28 Work stop', () => {
     // …but sessionsCount stays 0 (only natural completions count) — AC-28.
     expect(s.focusHistory.days[today].sessionsCount).toBe(0)
 
-    // Daily stats are NOT incremented on Stop — REQUIREMENTS §4.4 / AC-11.
-    expect(s.dailyStats.focusSeconds).toBe(0)
+    // Elapsed focus IS added to today's focus total (orb ↔ dashboard parity);
+    // the sessions counter is NOT bumped on a Stop.
+    expect(s.dailyStats.focusSeconds).toBe(600)
     expect(s.dailyStats.sessionsCount).toBe(0)
   })
 

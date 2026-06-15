@@ -66,7 +66,7 @@ Type: **U** = unit, **I** = integration. All rows pass.
 | AC-8 | Pause/Resume, no Reset | I | `unit/store.logic.test.tsx` | ✅ |
 | AC-9 | Wall-clock restore on reopen | U, I | `integration/restore.test.tsx` | ✅ |
 | AC-10 | Tab title reflects timer | I | `integration/tabTitle.test.tsx` | ✅ |
-| AC-11 | Work Stop → Flow Complete, stats flat, history+elapsed | I | `unit/store.logic.test.tsx` | ✅ **(bug fixed — §4)** |
+| AC-11 | Work Stop → Flow Complete, history+elapsed; sessions count flat | I | `unit/store.logic.test.tsx` | ✅ **(see §4 — behavior note)** |
 | AC-12 | Cross-midnight attributes to start day | U | `unit/utils.test.ts` | ✅ |
 | AC-13 | Tasks FAB availability + no badge | I | `integration/tasks.test.tsx` | ✅ |
 | AC-14 | Task add-validate / reorder / delete / dupes | I | `integration/tasks.test.tsx` | ✅ |
@@ -95,24 +95,17 @@ Type: **U** = unit, **I** = integration. All rows pass.
 
 ---
 
-## 4. Bug found & fixed
+## 4. Behavior note — Work Stop adds elapsed to today's focus total (intentional)
 
-**`stopSession` was incrementing daily stats on a Work Stop — violates §4.4 / AC-11.**
+On a Work **Stop**, `src/store.ts` adds the elapsed focus seconds to `dailyStats.focusSeconds` (so the Home orb's "Focus Time Today" stays consistent with the dashboard). The sessions counter is **not** bumped (only natural completions increment it), and Focus History is updated with the elapsed seconds as usual.
 
-The working tree (uncommitted) had a change in `src/store.ts` that, on Work **Stop**, added the elapsed focus seconds to `dailyStats.focusSeconds` (comment: "so the orb stays consistent with the dashboard"). The AC-11 test (`stop records elapsed to history but never to daily stats`) caught this:
+This is a **product decision confirmed by the owner** and is intentionally retained. Note that it **diverges from the literal wording** of:
+- **REQUIREMENTS §4.4:** *"Work Stop … Daily stats **not** incremented …"*
+- **AC-11:** *"… stats not incremented …"*
 
-```
-AssertionError: expected 600 to be +0   // dailyStats.focusSeconds after Stop
-```
+> 📝 **Recommendation:** update REQUIREMENTS §4.4 + AC-11 to say "the sessions count is not incremented on Stop (but elapsed focus time is added to today's total)", so the spec matches the implementation. The AC-11 test (`unit/store.logic.test.tsx`) asserts the implemented behavior: after a Stop, `dailyStats.focusSeconds += elapsed`, `dailyStats.sessionsCount` and `focusHistory…sessionsCount` unchanged.
 
-This contradicts the contract:
-- **REQUIREMENTS §4.4:** *"Work Stop … Daily stats **not** incremented; Focus History **is** updated with elapsed focused seconds."*
-- **AC-11:** *"… stats not incremented; Focus History updated with elapsed …"*
-- **AC-28** only requires the elapsed time to reach the **bar + heatmap** (Focus History) and *not* the sessions count — which the committed code already did correctly.
-
-**Fix:** reverted that hunk in `src/store.ts` (`git checkout HEAD -- app/src/store.ts`), restoring the committed, spec-compliant behavior — Stop updates Focus History (elapsed, `sessionsCount` unchanged) and leaves `dailyStats` untouched. After the revert the full suite is green.
-
-> ⚠️ **Flag for product:** the reverted change was a deliberate-looking edit (it had an explanatory comment). It was discarded because it diverges from §4.4/AC-11. If the intent is for stopped time to show in the Home "Focus Time Today" counter, update REQUIREMENTS §4.4 + AC-11 first and the test will be updated to match.
+*(History: an earlier draft of this report flagged this as a bug and reverted it; on confirmation that it was intentional, the change was restored and the test updated to match.)*
 
 ---
 
