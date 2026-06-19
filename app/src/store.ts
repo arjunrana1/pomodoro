@@ -1,109 +1,56 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import type { AppState, PlanItem, NoteItem, FocusHistory } from './types'
+import type { AppState, CompletedTask, NoteItem, SessionMode, SettingsState, TaskItem } from './types'
 import {
+  setSoundVolume as setAudioVolume,
   playClickSound,
   playStartSound,
   playPauseSound,
   playResumeSound,
   playStopSound,
   playCompletionSound,
+  playBreakStartSound,
+  playBreakEndSound,
 } from './audio'
-import { getTodayKey, recordFocusedSeconds, migrateDayRecord } from './utils'
-
-const STORAGE_KEY = 'pomodoro-focus-state'
-const STATS_KEY = 'pomodoro-focus-stats'
-const HISTORY_KEY = 'pomodoro-focus-history'
-
-// Legacy keys (for one-shot migration from earlier "Deep Focus" build)
-const LEGACY_STORAGE_KEY = 'deep-focus-state'
-const LEGACY_STATS_KEY = 'deep-focus-stats'
-
-function migrateLegacyKeys() {
-  try {
-    if (!localStorage.getItem(STORAGE_KEY)) {
-      const legacy = localStorage.getItem(LEGACY_STORAGE_KEY)
-      if (legacy) {
-        localStorage.setItem(STORAGE_KEY, legacy)
-        localStorage.removeItem(LEGACY_STORAGE_KEY)
-      }
-    }
-    if (!localStorage.getItem(STATS_KEY)) {
-      const legacy = localStorage.getItem(LEGACY_STATS_KEY)
-      if (legacy) {
-        localStorage.setItem(STATS_KEY, legacy)
-        localStorage.removeItem(LEGACY_STATS_KEY)
-      }
-    }
-  } catch { /* localStorage unavailable — degrade silently */ }
-}
-
-function loadStats(): { todayFocusSeconds: number; todaySessionsCount: number } {
-  try {
-    const raw = localStorage.getItem(STATS_KEY)
-    if (raw) {
-      const data = JSON.parse(raw)
-      if (data.dateKey === getTodayKey()) {
-        return { todayFocusSeconds: data.focusSeconds || 0, todaySessionsCount: data.sessionsCount || 0 }
-      }
-    }
-  } catch { /* localStorage unavailable — degrade silently */ }
-  return { todayFocusSeconds: 0, todaySessionsCount: 0 }
-}
-
-function saveStats(dateKey: string, focusSeconds: number, sessions: number) {
-  localStorage.setItem(STATS_KEY, JSON.stringify({ dateKey, focusSeconds, sessionsCount: sessions }))
-}
-
-function loadHistory(): FocusHistory {
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw) as FocusHistory
-      if (parsed && parsed.days) {
-        // Migrate any legacy 12-bucket records to the new 24-bucket shape and
-        // ensure tasksCompleted is always defined.
-        const days: Record<string, ReturnType<typeof migrateDayRecord>> = {}
-        for (const [k, v] of Object.entries(parsed.days)) {
-          days[k] = migrateDayRecord({ ...(v as object), dateKey: k })
-        }
-        return { days }
-      }
-    }
-  } catch { /* localStorage unavailable — degrade silently */ }
-  return { days: {} }
-}
-
-function saveHistory(history: FocusHistory) {
-  try {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history))
-  } catch { /* localStorage unavailable — degrade silently */ }
-}
+import { getTodayKey, recordFocusedSeconds, formatTime } from './utils'
+import {
+  purgeLegacyDataIfNeeded,
+  readRuntimeState,
+  persistRuntimeState,
+  readSettings,
+  writeSettings,
+  readHistory,
+  writeHistory,
+  readCompletedTasks,
+  writeCompletedTasks,
+  HISTORY_KEY,
+} from './persistence'
 
 function getDefaultState(): AppState {
-  const stats = loadStats()
   return {
-    mode: 'quick',
+    version: 3,
+    mode: 'work',
     status: 'idle',
-    selectedPreset: 20,
-    customMinutes: null,
+    sessionMode: 'work',
+    selectedWorkPreset: 25,
+    customWorkMinutes: null,
+    selectedBreakPreset: 5,
+    customBreakMinutes: null,
     customMinutesInputError: null,
-    planItems: [],
-    secondsRemaining: 20 * 60,
-    totalSessionSeconds: 20 * 60,
+    tasks: [],
     notes: [],
-    todayFocusSeconds: stats.todayFocusSeconds,
-    todaySessionsCount: stats.todaySessionsCount,
-    showPlanSidebar: false,
-    showNotesDrawer: false,
-    soundEnabled: true,
-    sessionStoppedEarly: false,
-    attributedDay: null,
+    secondsRemaining: 25 * 60,
+    initialSeconds: 25 * 60,
     startedAt: null,
-    initialSeconds: 20 * 60,
     pausedAt: null,
     totalPausedSeconds: 0,
+    attributedDay: null,
+    sessionStoppedEarly: false,
     lastSessionElapsedSeconds: 0,
-    focusHistory: loadHistory(),
+    dailyStats: { dateKey: getTodayKey(), focusSeconds: 0, sessionsCount: 0 },
+    focusHistory: { days: {} },
+    completedTasks: [],
+    showTasksDrawer: false,
+    showNotesDrawer: false,
   }
 }
 
@@ -123,117 +70,133 @@ function computeFocusedElapsedSeconds(state: AppState, nowMs: number): number {
   return Math.max(0, Math.min(state.initialSeconds, elapsedSec))
 }
 
-function loadPersistedState(): AppState {
-  migrateLegacyKeys()
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const saved = JSON.parse(raw) as Partial<AppState>
-      const defaults = getDefaultState()
-      const state: AppState = { ...defaults, ...saved, focusHistory: loadHistory() }
+function todayStats(stats: AppState['dailyStats']): AppState['dailyStats'] {
+  return stats.dateKey === getTodayKey() ? stats : { dateKey: getTodayKey(), focusSeconds: 0, sessionsCount: 0 }
+}
 
-      if (state.status === 'running' && state.startedAt) {
-        // Wall-clock recomputation: the timer is driven by Date.now() not by ticks,
-        // so a tab close/reopen reflects real elapsed time.
-        const now = Date.now()
-        const remaining = computeRemainingFromWallClock(state, now)
-        state.showPlanSidebar = false
-        state.showNotesDrawer = false
-        if (remaining <= 0) {
-          // Session would have completed during the closure: transition straight
-          // to Flow Complete and update stats + history as if completed normally.
-          const attributedDay = state.attributedDay || getTodayKey()
-          const dailyStats = loadStats()
-          const isToday = attributedDay === getTodayKey()
-          const focusBase = isToday ? dailyStats.todayFocusSeconds : 0
-          const sessionsBase = isToday ? dailyStats.todaySessionsCount : 0
-          const newFocus = focusBase + state.initialSeconds
-          const newSessions = sessionsBase + 1
-          saveStats(getTodayKey(), isToday ? newFocus : dailyStats.todayFocusSeconds, isToday ? newSessions : dailyStats.todaySessionsCount)
-          const startedMs = new Date(state.startedAt).getTime()
-          const endedMs = startedMs + state.initialSeconds * 1000 + state.totalPausedSeconds * 1000
-          const tasksDoneOnRestore = state.planItems.filter(p => p.completed).length
-          const updatedHistory = recordFocusedSeconds(
-            state.focusHistory,
-            startedMs,
-            endedMs,
-            state.totalPausedSeconds * 1000,
-            attributedDay,
-            true,
-            tasksDoneOnRestore,
-          )
-          saveHistory(updatedHistory)
+function selectedMinutes(state: AppState, mode: SessionMode): number {
+  if (mode === 'work') {
+    if (state.selectedWorkPreset) return state.selectedWorkPreset
+    if (state.customWorkMinutes && state.customWorkMinutes > 0) return state.customWorkMinutes
+    return 25
+  }
+  if (state.selectedBreakPreset) return state.selectedBreakPreset
+  if (state.customBreakMinutes && state.customBreakMinutes > 0) return state.customBreakMinutes
+  return 5
+}
+
+/** Finish a Work session (natural completion): stats + history + summary fields. */
+function completeWorkSession(prev: AppState): AppState {
+  const attributedDay = prev.attributedDay || getTodayKey()
+  const stats = todayStats(prev.dailyStats)
+  const isToday = attributedDay === stats.dateKey
+  const dailyStats = isToday
+    ? { ...stats, focusSeconds: stats.focusSeconds + prev.initialSeconds, sessionsCount: stats.sessionsCount + 1 }
+    : stats
+  const startedMs = prev.startedAt ? new Date(prev.startedAt).getTime() : Date.now()
+  const endedMs = startedMs + prev.initialSeconds * 1000 + prev.totalPausedSeconds * 1000
+  const focusHistory = recordFocusedSeconds(prev.focusHistory, startedMs, endedMs, prev.totalPausedSeconds * 1000, attributedDay, true)
+  writeHistory(focusHistory)
+  return {
+    ...prev,
+    status: 'complete',
+    secondsRemaining: 0,
+    sessionStoppedEarly: false,
+    lastSessionElapsedSeconds: prev.initialSeconds,
+    dailyStats,
+    focusHistory,
+    showTasksDrawer: false,
+    showNotesDrawer: false,
+  }
+}
+
+/**
+ * Boot-state memo: loadPersistedState mutates localStorage when a session
+ * completed while the tab was closed, and React StrictMode invokes useState
+ * initializers twice in dev — without this the restore double-records.
+ */
+let bootState: AppState | null = null
+
+function loadPersistedStateOnce(): AppState {
+  if (!bootState) bootState = loadPersistedState()
+  return bootState
+}
+
+function loadPersistedState(): AppState {
+  purgeLegacyDataIfNeeded()
+  const defaults = getDefaultState()
+  try {
+    const saved = readRuntimeState()
+    const focusHistory = readHistory()
+    const completedTasks = readCompletedTasks()
+    if (!saved) return { ...defaults, focusHistory, completedTasks }
+
+    const state: AppState = {
+      ...defaults,
+      ...saved,
+      dailyStats: todayStats(saved.dailyStats ?? defaults.dailyStats),
+      focusHistory,
+      completedTasks,
+      showTasksDrawer: false,
+      showNotesDrawer: false,
+    }
+
+    if (state.status === 'running' && state.startedAt) {
+      // Wall-clock restoration: a closed tab keeps "running"; recompute on load.
+      const remaining = computeRemainingFromWallClock(state, Date.now())
+      if (remaining <= 0) {
+        if (state.sessionMode === 'break') {
+          // Break finished while closed — straight to Break Done, nothing recorded.
           return {
             ...state,
             status: 'complete',
             secondsRemaining: 0,
             sessionStoppedEarly: false,
             lastSessionElapsedSeconds: state.initialSeconds,
-            todayFocusSeconds: isToday ? newFocus : dailyStats.todayFocusSeconds,
-            todaySessionsCount: isToday ? newSessions : dailyStats.todaySessionsCount,
-            focusHistory: updatedHistory,
           }
         }
-        return { ...state, secondsRemaining: remaining }
+        return completeWorkSession(state)
       }
-
-      if (state.status === 'paused') {
-        // Paused time does not advance the wall clock; restore literally.
-        state.showPlanSidebar = false
-        state.showNotesDrawer = false
-        return state
-      }
-
-      // For idle/complete, restore non-session-specific pieces and reset the rest.
-      return {
-        ...defaults,
-        planItems: state.planItems || [],
-        notes: state.notes || [],
-        soundEnabled: state.soundEnabled ?? true,
-        sessionStoppedEarly: state.sessionStoppedEarly || false,
-        focusHistory: state.focusHistory || defaults.focusHistory,
-        lastSessionElapsedSeconds: state.lastSessionElapsedSeconds || 0,
-      }
+      return { ...state, secondsRemaining: remaining }
     }
-  } catch { /* localStorage unavailable — degrade silently */ }
-  return getDefaultState()
-}
 
-function persistState(state: AppState) {
-  const toSave: Partial<AppState> = {
-    mode: state.mode,
-    status: state.status,
-    selectedPreset: state.selectedPreset,
-    customMinutes: state.customMinutes,
-    customMinutesInputError: state.customMinutesInputError,
-    planItems: state.planItems,
-    secondsRemaining: state.secondsRemaining,
-    totalSessionSeconds: state.totalSessionSeconds,
-    notes: state.notes,
-    soundEnabled: state.soundEnabled,
-    sessionStoppedEarly: state.sessionStoppedEarly,
-    attributedDay: state.attributedDay,
-    startedAt: state.startedAt,
-    initialSeconds: state.initialSeconds,
-    pausedAt: state.pausedAt,
-    totalPausedSeconds: state.totalPausedSeconds,
-    lastSessionElapsedSeconds: state.lastSessionElapsedSeconds,
+    if (state.status === 'paused') {
+      // Paused time does not advance the wall clock; restore literally.
+      return state
+    }
+
+    // Idle / complete: restore durable pieces, reset session-specific fields.
+    return {
+      ...defaults,
+      mode: state.mode,
+      selectedWorkPreset: state.selectedWorkPreset,
+      customWorkMinutes: state.customWorkMinutes,
+      selectedBreakPreset: state.selectedBreakPreset,
+      customBreakMinutes: state.customBreakMinutes,
+      tasks: state.tasks || [],
+      notes: state.notes || [],
+      dailyStats: state.dailyStats,
+      focusHistory,
+      completedTasks,
+      lastSessionElapsedSeconds: state.lastSessionElapsedSeconds || 0,
+      secondsRemaining: selectedMinutes(state, state.mode) * 60,
+      initialSeconds: selectedMinutes(state, state.mode) * 60,
+    }
+  } catch {
+    return defaults
   }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave))
-  saveHistory(state.focusHistory)
-}
-
-function getSelectedMinutes(state: AppState): number {
-  if (state.selectedPreset) return state.selectedPreset
-  if (state.customMinutes && state.customMinutes > 0) return state.customMinutes
-  return 20
 }
 
 export function useAppState() {
-  const [state, setState] = useState<AppState>(loadPersistedState)
+  const [state, setState] = useState<AppState>(loadPersistedStateOnce)
+  const [settings, setSettings] = useState<SettingsState>(readSettings)
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const dayKeyRef = useRef<string>(getTodayKey())
+  const settingsRef = useRef(settings)
+  useEffect(() => {
+    settingsRef.current = settings
+  }, [settings])
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -243,21 +206,28 @@ export function useAppState() {
   }, [])
 
   useEffect(() => {
-    persistState(state)
+    persistRuntimeState(state)
   }, [state])
 
   useEffect(() => {
+    writeCompletedTasks(state.completedTasks)
+  }, [state.completedTasks])
+
+  useEffect(() => {
+    setAudioVolume(settings.soundEnabled ? settings.soundVolume : 0)
+  }, [settings.soundEnabled, settings.soundVolume])
+
+  // Tab title reflects remaining (countDown) or elapsed (countUp) — AC-10.
+  useEffect(() => {
     if (state.status === 'running' || state.status === 'paused') {
-      const m = Math.floor(state.secondsRemaining / 60)
-      const s = state.secondsRemaining % 60
-      const time = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-      document.title = `${time} - Pomodoro Focus`
+      const display = settings.countUp ? state.initialSeconds - state.secondsRemaining : state.secondsRemaining
+      document.title = `${formatTime(display)} - Pomodoro Focus`
     } else if (state.status === 'complete') {
-      document.title = 'Flow Complete - Pomodoro Focus'
+      document.title = state.sessionMode === 'break' ? 'Break Done - Pomodoro Focus' : 'Flow Complete - Pomodoro Focus'
     } else {
       document.title = 'Pomodoro Focus'
     }
-  }, [state.status, state.secondsRemaining])
+  }, [state.status, state.secondsRemaining, state.initialSeconds, state.sessionMode, settings.countUp])
 
   // Wall-clock-driven tick: source of truth is Date.now(), not a per-tick decrement.
   useEffect(() => {
@@ -265,40 +235,22 @@ export function useAppState() {
       timerRef.current = setInterval(() => {
         setState(prev => {
           if (prev.status !== 'running' || !prev.startedAt) return prev
-          const now = Date.now()
-          const remaining = computeRemainingFromWallClock(prev, now)
+          const remaining = computeRemainingFromWallClock(prev, Date.now())
           if (remaining <= 0) {
             clearTimer()
-            const attributedDay = prev.attributedDay || getTodayKey()
-            const isToday = attributedDay === getTodayKey()
-            const focusBase = isToday ? prev.todayFocusSeconds : loadStats().todayFocusSeconds
-            const sessionsBase = isToday ? prev.todaySessionsCount : loadStats().todaySessionsCount
-            const newFocus = focusBase + prev.initialSeconds
-            const newSessions = sessionsBase + 1
-            saveStats(getTodayKey(), isToday ? newFocus : loadStats().todayFocusSeconds, isToday ? newSessions : loadStats().todaySessionsCount)
-            if (prev.soundEnabled) playCompletionSound()
-            const startedMs = new Date(prev.startedAt).getTime()
-            const endedMs = startedMs + prev.initialSeconds * 1000 + prev.totalPausedSeconds * 1000
-            const tasksDoneNatural = prev.planItems.filter(p => p.completed).length
-            const updatedHistory = recordFocusedSeconds(
-              prev.focusHistory,
-              startedMs,
-              endedMs,
-              prev.totalPausedSeconds * 1000,
-              attributedDay,
-              true,
-              tasksDoneNatural,
-            )
-            return {
-              ...prev,
-              secondsRemaining: 0,
-              status: 'complete',
-              sessionStoppedEarly: false,
-              lastSessionElapsedSeconds: prev.initialSeconds,
-              todayFocusSeconds: isToday ? newFocus : prev.todayFocusSeconds,
-              todaySessionsCount: isToday ? newSessions : prev.todaySessionsCount,
-              focusHistory: updatedHistory,
+            const sound = settingsRef.current.soundEnabled
+            if (prev.sessionMode === 'break') {
+              if (sound) playBreakEndSound()
+              return {
+                ...prev,
+                status: 'complete',
+                secondsRemaining: 0,
+                sessionStoppedEarly: false,
+                lastSessionElapsedSeconds: prev.initialSeconds,
+              }
             }
+            if (sound) playCompletionSound()
+            return completeWorkSession(prev)
           }
           if (remaining === prev.secondsRemaining) return prev
           return { ...prev, secondsRemaining: remaining }
@@ -310,62 +262,98 @@ export function useAppState() {
     return clearTimer
   }, [state.status, clearTimer])
 
-  // Local-midnight rollover refresh: bumps daily stats / dashboard to the new day.
+  // Local-midnight rollover: refresh daily stats / dashboard (AC dashboards re-render).
   useEffect(() => {
     const i = setInterval(() => {
       const today = getTodayKey()
       if (today !== dayKeyRef.current) {
         dayKeyRef.current = today
-        const fresh = loadStats()
-        setState(prev => ({
-          ...prev,
-          todayFocusSeconds: fresh.todayFocusSeconds,
-          todaySessionsCount: fresh.todaySessionsCount,
-        }))
+        setState(prev => ({ ...prev, dailyStats: todayStats(prev.dailyStats) }))
       }
     }, 30_000)
     return () => clearInterval(i)
   }, [])
 
-  const selectPreset = useCallback((m: 15 | 20 | 25) => {
+  // ── Mode & settings ────────────────────────────────────────────────────────
+
+  const setMode = useCallback((mode: SessionMode) => {
+    setState(prev => {
+      // Mode is locked during any running/paused session (AC-3).
+      if (prev.status === 'running' || prev.status === 'paused') return prev
+      if (prev.mode === mode) return prev
+      const secs = selectedMinutes(prev, mode) * 60
+      return {
+        ...prev,
+        mode,
+        status: 'idle',
+        customMinutesInputError: null,
+        secondsRemaining: secs,
+        initialSeconds: secs,
+        showTasksDrawer: mode === 'break' ? false : prev.showTasksDrawer,
+        showNotesDrawer: mode === 'break' ? false : prev.showNotesDrawer,
+      }
+    })
+  }, [])
+
+  const setCountUp = useCallback((countUp: boolean) => {
+    setSettings(writeSettings({ countUp }))
+  }, [])
+
+  const toggleSound = useCallback(() => {
+    setSettings(prev => writeSettings({ soundEnabled: !prev.soundEnabled }))
+  }, [])
+
+  const setSoundVolume = useCallback((soundVolume: number) => {
+    setSettings(writeSettings({ soundVolume }))
+  }, [])
+
+  /** Re-read settings from storage (used after Spotify connect/disconnect). */
+  const refreshSettings = useCallback(() => {
+    setSettings(readSettings())
+  }, [])
+
+  // ── Presets / custom duration ──────────────────────────────────────────────
+
+  const selectWorkPreset = useCallback((m: 15 | 20 | 25) => {
     setState(prev => ({
       ...prev,
-      selectedPreset: m,
-      customMinutes: null,
+      selectedWorkPreset: m,
+      customWorkMinutes: null,
       customMinutesInputError: null,
       secondsRemaining: m * 60,
-      totalSessionSeconds: m * 60,
       initialSeconds: m * 60,
     }))
   }, [])
 
-  /**
-   * Commit a custom-minutes value from the pill input. Invalid input keeps the
-   * pill open with an error state per PRD §7.1; valid input becomes the active
-   * selection and clears any preset.
-   */
+  const selectBreakPreset = useCallback((m: 5 | 10 | 15) => {
+    setState(prev => ({
+      ...prev,
+      selectedBreakPreset: m,
+      customBreakMinutes: null,
+      customMinutesInputError: null,
+      secondsRemaining: m * 60,
+      initialSeconds: m * 60,
+    }))
+  }, [])
+
   const commitCustomMinutes = useCallback((raw: string): boolean => {
     const trimmed = raw.trim()
-    if (trimmed === '') {
-      setState(prev => ({ ...prev, customMinutesInputError: 'Enter a whole number ≥ 1' }))
-      return false
-    }
-    if (!/^\d+$/.test(trimmed)) {
-      setState(prev => ({ ...prev, customMinutesInputError: 'Whole numbers only — no decimals or letters' }))
+    let error: string | null = null
+    if (trimmed === '') error = 'Enter a whole number ≥ 1'
+    else if (!/^\d+$/.test(trimmed)) error = 'Whole numbers only — no decimals or letters'
+    else if (parseInt(trimmed, 10) < 1) error = 'Enter a whole number ≥ 1'
+    if (error) {
+      setState(prev => ({ ...prev, customMinutesInputError: error }))
       return false
     }
     const m = parseInt(trimmed, 10)
-    if (!Number.isFinite(m) || m < 1) {
-      setState(prev => ({ ...prev, customMinutesInputError: 'Enter a whole number ≥ 1' }))
-      return false
-    }
     setState(prev => ({
       ...prev,
-      selectedPreset: null,
-      customMinutes: m,
+      ...(prev.mode === 'work'
+        ? { selectedWorkPreset: null, customWorkMinutes: m }
+        : { selectedBreakPreset: null, customBreakMinutes: m }),
       customMinutesInputError: null,
       secondsRemaining: m * 60,
-      totalSessionSeconds: m * 60,
       initialSeconds: m * 60,
     }))
     return true
@@ -375,94 +363,134 @@ export function useAppState() {
     setState(prev => ({ ...prev, customMinutesInputError: err }))
   }, [])
 
-  const togglePlanSidebar = useCallback(() => {
-    setState(prev => ({ ...prev, showPlanSidebar: !prev.showPlanSidebar }))
+  // ── Drawers ────────────────────────────────────────────────────────────────
+
+  const toggleTasksDrawer = useCallback(() => {
+    setState(prev => ({ ...prev, showTasksDrawer: !prev.showTasksDrawer, showNotesDrawer: false }))
+  }, [])
+
+  const closeTasksDrawer = useCallback(() => {
+    setState(prev => (prev.showTasksDrawer ? { ...prev, showTasksDrawer: false } : prev))
   }, [])
 
   const toggleNotesDrawer = useCallback(() => {
-    setState(prev => ({ ...prev, showNotesDrawer: !prev.showNotesDrawer }))
+    setState(prev => ({ ...prev, showNotesDrawer: !prev.showNotesDrawer, showTasksDrawer: false }))
   }, [])
 
   const closeNotesDrawer = useCallback(() => {
-    setState(prev => ({ ...prev, showNotesDrawer: false }))
+    setState(prev => (prev.showNotesDrawer ? { ...prev, showNotesDrawer: false } : prev))
   }, [])
 
-  const toggleSound = useCallback(() => {
-    setState(prev => ({ ...prev, soundEnabled: !prev.soundEnabled }))
+  // ── Tasks ──────────────────────────────────────────────────────────────────
+
+  const addTask = useCallback((title: string, minutes: number) => {
+    const item: TaskItem = { id: crypto.randomUUID(), title, minutes, checked: false }
+    setState(prev => ({ ...prev, tasks: [...prev.tasks, item] }))
   }, [])
 
-  const addPlanItem = useCallback((title: string, minutes: number) => {
-    const item: PlanItem = { id: crypto.randomUUID(), title, minutes, completed: false }
-    setState(prev => ({ ...prev, planItems: [...prev.planItems, item] }))
+  const removeTask = useCallback((id: string) => {
+    setState(prev => ({ ...prev, tasks: prev.tasks.filter(t => t.id !== id) }))
   }, [])
 
-  const removePlanItem = useCallback((id: string) => {
-    setState(prev => ({ ...prev, planItems: prev.planItems.filter(i => i.id !== id) }))
-  }, [])
-
-  const reorderPlanItems = useCallback((fromIndex: number, toIndex: number) => {
+  const reorderTasks = useCallback((fromIndex: number, toIndex: number) => {
     setState(prev => {
-      const items = [...prev.planItems]
-      const [moved] = items.splice(fromIndex, 1)
-      items.splice(toIndex, 0, moved)
-      return { ...prev, planItems: items }
+      const active = prev.tasks.filter(t => !t.checked)
+      const checked = prev.tasks.filter(t => t.checked)
+      const [moved] = active.splice(fromIndex, 1)
+      if (!moved) return prev
+      active.splice(toIndex, 0, moved)
+      return { ...prev, tasks: [...active, ...checked] }
     })
   }, [])
 
-  const togglePlanItemCompleted = useCallback((id: string) => {
-    setState(prev => ({
-      ...prev,
-      planItems: prev.planItems.map(item =>
-        item.id === id ? { ...item, completed: !item.completed } : item
-      ),
-    }))
+  /**
+   * Check/uncheck a task. Checking moves it into the Completed Tasks log with a
+   * timestamp (newest-first, AC-15); unchecking pulls its log entry back out.
+   */
+  const toggleTaskChecked = useCallback((id: string) => {
+    setState(prev => {
+      const task = prev.tasks.find(t => t.id === id)
+      if (!task) return prev
+      const nowChecked = !task.checked
+      const tasks = prev.tasks.map(t => (t.id === id ? { ...t, checked: nowChecked } : t))
+      let completedTasks = prev.completedTasks
+      if (nowChecked) {
+        const entry: CompletedTask = {
+          id: task.id,
+          title: task.title,
+          minutes: task.minutes,
+          completedAt: new Date().toISOString(),
+        }
+        completedTasks = [entry, ...prev.completedTasks]
+      } else {
+        completedTasks = prev.completedTasks.filter(c => c.id !== id)
+      }
+      return { ...prev, tasks, completedTasks }
+    })
   }, [])
 
+  const clearCompletedTasks = useCallback(() => {
+    setState(prev => ({ ...prev, completedTasks: [] }))
+  }, [])
+
+  // ── Notes ──────────────────────────────────────────────────────────────────
+
   const addNote = useCallback((text: string) => {
-    const item: NoteItem = { id: crypto.randomUUID(), text, createdAt: Date.now() }
-    setState(prev => ({ ...prev, notes: [...prev.notes, item] }))
+    const item: NoteItem = { id: crypto.randomUUID(), text, createdAt: new Date().toISOString() }
+    setState(prev => ({ ...prev, notes: [item, ...prev.notes] }))
   }, [])
 
   const editNote = useCallback((id: string, text: string) => {
-    setState(prev => ({ ...prev, notes: prev.notes.map(n => n.id === id ? { ...n, text } : n) }))
+    setState(prev => ({
+      ...prev,
+      notes: prev.notes.map(n => (n.id === id ? { ...n, text, editedAt: new Date().toISOString() } : n)),
+    }))
   }, [])
 
   const deleteNote = useCallback((id: string) => {
     setState(prev => ({ ...prev, notes: prev.notes.filter(n => n.id !== id) }))
   }, [])
 
+  // ── Sessions ───────────────────────────────────────────────────────────────
+
   const startSession = useCallback((source: 'home' | 'plan' = 'home') => {
     setState(prev => {
-      if (prev.soundEnabled) playStartSound()
-      const minutes = source === 'plan'
-        ? prev.planItems.reduce((s, i) => s + i.minutes, 0)
-        : getSelectedMinutes(prev)
-      const seconds = minutes * 60
+      const mode = prev.mode
+      if (settingsRef.current.soundEnabled) {
+        if (mode === 'break') playBreakStartSound()
+        else playStartSound()
+      }
+      const minutes =
+        source === 'plan'
+          ? prev.tasks.filter(t => !t.checked).reduce((s, t) => s + t.minutes, 0)
+          : selectedMinutes(prev, mode)
+      const seconds = Math.max(60, minutes * 60)
       return {
         ...prev,
-        mode: source === 'plan' ? 'planned' : 'quick',
         status: 'running',
+        sessionMode: mode,
         secondsRemaining: seconds,
-        totalSessionSeconds: seconds,
         initialSeconds: seconds,
         startedAt: new Date().toISOString(),
         pausedAt: null,
         totalPausedSeconds: 0,
-        showPlanSidebar: false,
-        sessionStoppedEarly: false,
         attributedDay: getTodayKey(),
+        sessionStoppedEarly: false,
+        showTasksDrawer: false,
+        showNotesDrawer: false,
+        dailyStats: todayStats(prev.dailyStats),
       }
     })
   }, [])
 
-  const pauseSession = useCallback(() => {
+  const pauseResumeSession = useCallback(() => {
     setState(prev => {
       if (prev.status === 'running') {
-        if (prev.soundEnabled) playPauseSound()
+        if (settingsRef.current.soundEnabled) playPauseSound()
         return { ...prev, status: 'paused', pausedAt: new Date().toISOString() }
       }
       if (prev.status === 'paused') {
-        if (prev.soundEnabled) playResumeSound()
+        if (settingsRef.current.soundEnabled) playResumeSound()
         const pausedExtraMs = prev.pausedAt ? Date.now() - new Date(prev.pausedAt).getTime() : 0
         return {
           ...prev,
@@ -475,80 +503,139 @@ export function useAppState() {
     })
   }, [])
 
+  /** Work Stop — confirm, then Flow Complete. History updated, daily stats not (AC-11). */
   const stopSession = useCallback(() => {
     if (!window.confirm('Are you sure you want to stop this session? Your progress will not count toward daily stats.')) {
       return
     }
     clearTimer()
     setState(prev => {
-      if (prev.soundEnabled) playStopSound()
+      if (settingsRef.current.soundEnabled) playStopSound()
       const now = Date.now()
       const elapsed = computeFocusedElapsedSeconds(prev, now)
-      let updatedHistory = prev.focusHistory
+      const attributedDay = prev.attributedDay || getTodayKey()
+      let focusHistory = prev.focusHistory
       if (prev.startedAt) {
         const startedMs = new Date(prev.startedAt).getTime()
         const pausedMs = prev.totalPausedSeconds * 1000 + (prev.pausedAt ? now - new Date(prev.pausedAt).getTime() : 0)
-        const attributedDay = prev.attributedDay || getTodayKey()
-        // Stop still updates Focus History (elapsed seconds + segments) but NOT
-        // dailyStats (sessionsCount/focusSeconds) per PRD §8.2/8.3.
-        const tasksDoneStop = prev.planItems.filter(p => p.completed).length
-        updatedHistory = recordFocusedSeconds(prev.focusHistory, startedMs, now, pausedMs, attributedDay, false, tasksDoneStop)
+        focusHistory = recordFocusedSeconds(prev.focusHistory, startedMs, now, pausedMs, attributedDay, false)
+        writeHistory(focusHistory)
       }
+      // Stopped sessions add their elapsed focus time to today's total so the
+      // orb stays consistent with the dashboard; only natural completions
+      // increment the sessions counter.
+      const stats = todayStats(prev.dailyStats)
+      const dailyStats = attributedDay === stats.dateKey
+        ? { ...stats, focusSeconds: stats.focusSeconds + elapsed }
+        : stats
       return {
         ...prev,
         status: 'complete',
         sessionStoppedEarly: true,
         lastSessionElapsedSeconds: elapsed,
-        focusHistory: updatedHistory,
+        dailyStats,
+        focusHistory,
+        showTasksDrawer: false,
+        showNotesDrawer: false,
       }
     })
   }, [clearTimer])
 
-  const newSession = useCallback(() => {
+  /** Break End — immediate, nothing recorded (REQUIREMENTS §3.4). */
+  const endBreak = useCallback(() => {
     clearTimer()
     setState(prev => {
-      const base: AppState = {
-        ...getDefaultState(),
-        todayFocusSeconds: prev.todayFocusSeconds,
-        todaySessionsCount: prev.todaySessionsCount,
-        soundEnabled: prev.soundEnabled,
-        focusHistory: prev.focusHistory,
+      if (settingsRef.current.soundEnabled) playBreakEndSound()
+      const elapsed = computeFocusedElapsedSeconds(prev, Date.now())
+      return {
+        ...prev,
+        status: 'complete',
+        sessionStoppedEarly: true,
+        lastSessionElapsedSeconds: elapsed,
       }
-      // Unchecked tasks always survive; checked tasks always drop. Notes follow
-      // PRD §7.5: cleared after natural completion, preserved after a stop.
-      const unchecked = prev.planItems
-        .filter(item => !item.completed)
-        .map(item => ({ ...item, completed: false }))
-      base.planItems = unchecked
-      base.notes = prev.sessionStoppedEarly ? prev.notes : []
-      return base
     })
   }, [clearTimer])
 
+  /**
+   * Leave a completion screen. Checked plan tasks drop (they live in the
+   * completed log); unchecked tasks and notes always survive (§15.3).
+   * `targetMode` forces Work when leaving Break Done via "Start Focus Session".
+   */
+  const newSession = useCallback((targetMode?: SessionMode) => {
+    clearTimer()
+    setState(prev => {
+      const mode = targetMode ?? prev.mode
+      const secs = selectedMinutes(prev, mode) * 60
+      return {
+        ...prev,
+        mode,
+        status: 'idle',
+        sessionMode: mode,
+        tasks: prev.tasks.filter(t => !t.checked),
+        secondsRemaining: secs,
+        initialSeconds: secs,
+        startedAt: null,
+        pausedAt: null,
+        totalPausedSeconds: 0,
+        attributedDay: null,
+        customMinutesInputError: null,
+        dailyStats: todayStats(prev.dailyStats),
+      }
+    })
+  }, [clearTimer])
+
+  // ── Data & Privacy ─────────────────────────────────────────────────────────
+
+  const clearFocusHistory = useCallback(() => {
+    setState(prev => {
+      const focusHistory = { days: {} }
+      try {
+        localStorage.removeItem(HISTORY_KEY)
+      } catch { /* degrade silently */ }
+      return {
+        ...prev,
+        focusHistory,
+        dailyStats: { dateKey: getTodayKey(), focusSeconds: 0, sessionsCount: 0 },
+      }
+    })
+  }, [])
+
   const playClick = useCallback(() => {
-    if (state.soundEnabled) playClickSound()
-  }, [state.soundEnabled])
+    if (settingsRef.current.soundEnabled) playClickSound()
+  }, [])
 
   return {
     state,
-    selectPreset,
+    settings,
+    setMode,
+    setCountUp,
+    toggleSound,
+    setSoundVolume,
+    refreshSettings,
+    selectWorkPreset,
+    selectBreakPreset,
     commitCustomMinutes,
     setCustomMinutesError,
-    togglePlanSidebar,
+    toggleTasksDrawer,
+    closeTasksDrawer,
     toggleNotesDrawer,
     closeNotesDrawer,
-    toggleSound,
-    addPlanItem,
-    removePlanItem,
-    reorderPlanItems,
-    togglePlanItemCompleted,
-    startSession,
-    pauseSession,
-    stopSession,
+    addTask,
+    removeTask,
+    reorderTasks,
+    toggleTaskChecked,
+    clearCompletedTasks,
     addNote,
     editNote,
     deleteNote,
+    startSession,
+    pauseResumeSession,
+    stopSession,
+    endBreak,
     newSession,
+    clearFocusHistory,
     playClick,
   }
 }
+
+export type AppStore = ReturnType<typeof useAppState>

@@ -15,6 +15,18 @@ Extracted from 6 Figma-exported CSS files in `/design_assets/`, validated agains
 | `primary-glow`     | `rgba(106, 90, 231, 0.3)`   | Button shadows, orb glow           |
 | `primary-muted`    | `rgba(106, 90, 231, 0.6)`   | "FOCUS FLOW" label, capture icons  |
 
+### Break Mode Accent
+Used when the session mode is **Break** instead of **Focus**. Soft teal differentiates rest from focus without leaving the cool-tone family.
+| Token              | Value                        | Usage                                          |
+|--------------------|------------------------------|------------------------------------------------|
+| `break`            | `#14B8A6`                    | Break-mode CTAs, active toggle segment, accent |
+| `break-light`      | `rgba(20, 184, 166, 0.1)`   | Subtle break-tinted backgrounds                |
+| `break-border`     | `rgba(20, 184, 166, 0.2)`   | Preset pill border (selected, Break mode)      |
+| `break-glow`       | `rgba(20, 184, 166, 0.3)`   | Break CTA shadow, break orb glow               |
+| `break-muted`      | `rgba(20, 184, 166, 0.6)`   | Secondary break labels / icons                 |
+| `break-fixed`      | `#0E8C7E`                    | Pressed/active Break CTA                       |
+| `break-container`  | `#CCFBF1`                    | Soft tint behind Break elements                |
+
 ### Neutral Text
 | Token              | Value       | Usage                                      |
 |--------------------|-------------|--------------------------------------------|
