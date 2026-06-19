@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { AppStore } from '../store'
-import { formatTime, formatDuration } from '../utils'
+import { formatTime, formatDuration, getTodayKey } from '../utils'
 import Header from './Header'
 import Fabs from './Fabs'
 import FocusHistoryDashboard from './FocusHistoryDashboard'
@@ -35,6 +35,11 @@ export default function HomeScreen({ store, openSettings }: Props) {
   const customMinutes = isBreak ? state.customBreakMinutes : state.customWorkMinutes
   const selectedPreset = isBreak ? state.selectedBreakPreset : state.selectedWorkPreset
   const [customValue, setCustomValue] = useState(customMinutes != null ? String(customMinutes) : '')
+
+  // Orb "Focus Time Today" mirrors the dashboard Daily Total: max of the
+  // history-backed today total (includes stopped sessions) and daily stats.
+  const todayHistorySeconds = state.focusHistory.days[getTodayKey()]?.totalFocusSeconds ?? 0
+  const focusTodaySeconds = Math.max(todayHistorySeconds, state.dailyStats.focusSeconds)
 
   const showCustomInput = showCustomInputState || !!state.customMinutesInputError
   const customSelected = selectedPreset === null && (customMinutes != null || !!state.customMinutesInputError)
@@ -197,7 +202,7 @@ export default function HomeScreen({ store, openSettings }: Props) {
             {!isBreak && (
               <div className="flex items-center gap-6 mt-5">
                 <div className="flex flex-col items-center">
-                  <span className="text-slate-700 font-bold text-xs">{formatDuration(state.dailyStats.focusSeconds)}</span>
+                  <span className="text-slate-700 font-bold text-xs">{formatDuration(focusTodaySeconds)}</span>
                   <span className="text-slate-400 text-[8px] uppercase font-bold tracking-wider">Focus Time Today</span>
                 </div>
                 <div className="w-px h-4 bg-slate-300/50" />

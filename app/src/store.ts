@@ -513,18 +513,27 @@ export function useAppState() {
       if (settingsRef.current.soundEnabled) playStopSound()
       const now = Date.now()
       const elapsed = computeFocusedElapsedSeconds(prev, now)
+      const attributedDay = prev.attributedDay || getTodayKey()
       let focusHistory = prev.focusHistory
       if (prev.startedAt) {
         const startedMs = new Date(prev.startedAt).getTime()
         const pausedMs = prev.totalPausedSeconds * 1000 + (prev.pausedAt ? now - new Date(prev.pausedAt).getTime() : 0)
-        focusHistory = recordFocusedSeconds(prev.focusHistory, startedMs, now, pausedMs, prev.attributedDay || getTodayKey(), false)
+        focusHistory = recordFocusedSeconds(prev.focusHistory, startedMs, now, pausedMs, attributedDay, false)
         writeHistory(focusHistory)
       }
+      // Stopped sessions add their elapsed focus time to today's total so the
+      // orb stays consistent with the dashboard; only natural completions
+      // increment the sessions counter.
+      const stats = todayStats(prev.dailyStats)
+      const dailyStats = attributedDay === stats.dateKey
+        ? { ...stats, focusSeconds: stats.focusSeconds + elapsed }
+        : stats
       return {
         ...prev,
         status: 'complete',
         sessionStoppedEarly: true,
         lastSessionElapsedSeconds: elapsed,
+        dailyStats,
         focusHistory,
         showTasksDrawer: false,
         showNotesDrawer: false,

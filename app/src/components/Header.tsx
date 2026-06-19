@@ -67,8 +67,8 @@ export default function Header({
           <h2 className="text-base font-bold tracking-tight text-slate-800 truncate">Pomodoro Focus</h2>
         </div>
 
-        {/* Desktop: toggle centered */}
-        <div className="hidden sm:flex absolute left-1/2 -translate-x-1/2">{toggle}</div>
+        {/* Desktop: toggle centered, nudged down toward the orb */}
+        <div className="hidden sm:flex absolute left-1/2 -translate-x-1/2 translate-y-5">{toggle}</div>
 
         <div className="flex items-center gap-1.5 shrink-0">
           {badge}
@@ -93,7 +93,7 @@ export default function Header({
 
       {/* Mobile: full-width pill below the brand (absolute → scrolls away with the fold) */}
       {!hideToggle && (
-        <div className="sm:hidden absolute top-16 left-4 right-4 z-30 flex justify-center [&>div]:w-full [&>div]:justify-center">
+        <div className="sm:hidden absolute top-[84px] left-4 right-4 z-30 flex justify-center [&>div]:w-full [&>div]:justify-center">
           {toggle}
         </div>
       )}
