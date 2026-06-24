@@ -6,6 +6,89 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.0.0] — 2026-06-19
+
+A fresh rebuild on top of v2. v3 is a clean start: any v2-shaped
+localStorage is purged on first load (no migration). Live at
+https://www.pomodorofocus.net.
+
+### Added
+- **Focus / Break modes** — a persistent header toggle (labeled "Focus",
+  internally `work`). Break is a teal, non-recorded timer with 5/10/15
+  presets (default 5m), a `TAKE A BREATHER` subtitle, its own start/end
+  chimes, and a **Break Done** card. Break never writes to stats, focus
+  history, or the dashboard. The toggle is disabled with a lock glyph
+  during any running/paused session.
+- **Count Up / Count Down** — a display-only timer-direction setting
+  (Settings → Timer) applied to both modes' orb and the browser tab
+  title; the session still starts and ends at the same target.
+- **FAB navigation** — Notes (bottom-left, glass) and Session Plan
+  (bottom-right, primary) floating buttons replace the v2 side rails.
+  The Tasks FAB is idle-only (hidden during a live session); the Notes
+  FAB stays available mid-session. Both hidden in Break and on
+  completion screens.
+- **Completed Tasks log** — checking a plan task moves it into a
+  timestamped, newest-first log (its own localStorage key, never
+  auto-cleared); unchecking pulls it back. Clear-all (with confirm) is
+  available from both the Session Plan drawer and Settings.
+- **Standalone Notes** — notes are now an independent entity available on
+  idle Home and during active Focus sessions, with per-note timestamps
+  and edit/delete. They persist across sessions and mode switches.
+- **Settings screen** (full screen via the header gear) — Timer
+  direction, Sound (master toggle + volume slider, reflected by the
+  header speaker), Music, and Data & Privacy (clear focus history,
+  clear completed tasks, export all data as JSON).
+- **Built-in Lofi player** — 8 CC0 tracks loaded from
+  `public/music/manifest.json`, with play/pause, prev/next, loop, and an
+  independent volume slider. Playback runs from a module-scope `<audio>`
+  singleton so it survives every navigation and state change.
+- **Spotify Connect** — Authorization Code with PKCE (frontend-only, no
+  secret). A `/callback` route completes the token exchange; tokens
+  persist and silently refresh. Connected state shows now-playing +
+  transport + Disconnect in Settings and a mini-player on the active
+  session; a Premium note is shown since playback control requires it.
+- **Break start/end sounds** — a warm descending chime on break start and
+  a gentle ascending chime on break end, distinct from the Focus sounds.
+- **Expanded SEO marketing footer** — seven keyword-aware sections
+  (What is Pomodoro Focus, the Pomodoro Technique, How to Use, Focus &
+  Break Sessions, Tasks & Session Planning, Focus Music, Features).
+- **Vitest test suite** — 130 unit + integration tests covering all 34
+  acceptance criteria; Playwright E2E journeys scaffolded.
+
+### Changed
+- **Reworked Focus History dashboard** — the heatmap is now a
+  work-life-friendly **8 AM–11 PM** hourly window (16 columns, every
+  hour labeled in full) instead of a full 24-hour strip; out-of-window
+  hours are still recorded but not displayed. The 2×2 stats grid keeps
+  Daily Total, Daily Avg, Weekly Total, and Tasks Completed.
+- **Orb "Focus Time Today"** now reads the history-backed today total
+  (max with daily stats), so it matches the dashboard's Daily Total tile
+  and reflects stopped sessions too.
+- **One global duration format** — `Xh Ym` / `Xh` / `Ym` everywhere
+  (dashboard, tiles, completed tasks, Flow Complete, Break Done);
+  seconds round up, no decimals.
+- **Focus/Break mode pill** nudged ~20px down toward the orb on both
+  desktop and mobile.
+- **Persistence split** into four namespaced keys —
+  `pomodoro-focus-state`, `pomodoro-focus-history`,
+  `pomodoro-focus-completed-tasks`, and `pomodoro-focus-settings` — each
+  with a `version: 3` marker.
+
+### Removed
+- **v2 side rails** in favor of FAB navigation.
+- **Session Mode mirror** from the Settings Timer card — mode lives only
+  in the header toggle.
+- **All v2 localStorage** (`pomodoro-focus-stats`, `deep-focus-*`, or any
+  state blob without a `version: 3` marker) is purged on first load.
+  There is no v2 → v3 migration.
+
+### Migration notes (read these before you upgrade)
+- **No migration from v2.** The first v3 load detects v2-shaped keys and
+  clears all app data, then initializes fresh defaults (Focus mode, 25m).
+  Existing focus history, stats, notes, and tasks from v2 are **not**
+  carried over. Export from v2 first if you need that data.
+- The purge is **one-way and per-browser** (localStorage is per-origin).
+
 ## [2.0.0] — TBD
 
 This release rebrands the app from "Deep Focus" to **Pomodoro Focus** and
@@ -83,5 +166,6 @@ dashboard, and a redesigned active-session UI.
 - No automated test suite yet — verification is manual per
   `test-report.txt`. Vitest scaffolding tracked separately.
 
-[Unreleased]: https://github.com/arjunrana1/pomodoro/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/arjunrana1/pomodoro/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/arjunrana1/pomodoro/compare/v2.0.0...v3.0.0
 [2.0.0]: https://github.com/arjunrana1/pomodoro/compare/v1.0.0...v2.0.0
